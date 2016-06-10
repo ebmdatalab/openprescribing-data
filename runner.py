@@ -34,11 +34,19 @@ class ManifestError(StandardError):
 
 
 class Source(UserDict.UserDict):
+    """Adds business logic to a row of data in `manifest.json`
+    """
     def __init__(self, source):
         UserDict.UserDict.__init__(self)
         self.data = source
 
-    def get_last_imported_file(self, file_regex):
+    def last_imported_filename(self, file_regex):
+        """Return the full path to the most recently imported data for this
+        source.
+
+        Returns None if no data has been imported.
+
+        """
         with open('log.json', 'r') as f:
             try:
                 log = json.load(f)
@@ -54,7 +62,9 @@ class Source(UserDict.UserDict):
                         matches,
                         key=lambda x: x['imported_at'])[-1]['imported_file']
 
-    def save_last_imported(self, filename):
+    def set_last_imported_filename(self, filename):
+        """Set the path of the most recently imported data for this source
+        """
         now = datetime.datetime.now().replace(microsecond=0).isoformat()
         with open('log.json', 'r+') as f:
             try:
@@ -69,10 +79,16 @@ class Source(UserDict.UserDict):
             f.seek(0)
             f.write(json.dumps(log, indent=2, separators=(',', ': ')))
 
-    def filename_arg(self, importer):
+    def filename_arg(self, cmd_string):
+        """Extract the argument supplied to `--filename` flag (or similar).
+
+        Possible flags indicating a filename are defined in the
+        FILENAME_FLAGS constant.
+
+        """
         # We quote before splitting, to preserve regex backslashes
         # specified in the JSON
-        cmd_parts = shlex.split(importer.encode('unicode-escape'))
+        cmd_parts = shlex.split(cmd_string.encode('unicode-escape'))
         filename_idx = None
         for flag in FILENAME_FLAGS:
             try:
@@ -82,10 +98,17 @@ class Source(UserDict.UserDict):
         if not filename_idx:
             raise ManifestError(
                 "Couldn't find a filename argument in %s"
-                % importer)
+                % cmd_string)
         return cmd_parts[filename_idx]
 
     def most_recent_file(self, importer, raise_if_imported=True):
+        """Return the most recently generated data file for the specified
+        importer.
+
+        If `raise_if_imported` is True, raise a `NothingToDoError` if
+        that file has been recorded as already imported.
+
+        """
         if importer:
             file_regex = self.filename_arg(importer)
         else:
@@ -99,7 +122,7 @@ class Source(UserDict.UserDict):
                 "Couldn't find a file matching %s at %s/%s" %
                 (file_regex, OPENP_DATA_BASEDIR, self['id']))
         most_recent = sorted(candidates)[-1]
-        last_imported_file = self.get_last_imported_file(file_regex)
+        last_imported_file = self.last_imported_filename(file_regex)
         if raise_if_imported and last_imported_file:
             last_imported_date = last_imported_file.split("/")[-2]
             most_recent_date = most_recent.split("/")[-2]
@@ -108,6 +131,14 @@ class Source(UserDict.UserDict):
         return most_recent
 
     def importer_cmds_with_latest_data(self):
+        """Return a list of importer commands suitable for running.
+
+        This replaces regex-based placeholders defined in the
+        `importers` with the full path to the most recent unimported
+        data, and omits commands which have already been run for the
+        most recent unimported data.
+
+        """
         cmds = []
         for importer in self.get('importers', []):
             try:
@@ -133,7 +164,9 @@ class ManifestReader(object):
             self.sources_without_fetchers = filter(
                 lambda x: 'fetcher' not in x, self.sources)
 
-    def sources_ordered_by_importers(self):
+    def sources_ordered_by_dependency(self):
+        """Produce a list of sources, ordered by dependency graph
+        """
         graph = nx.DiGraph()
         for source in self.sources:
             graph.add_node(source['id'])
@@ -148,15 +181,16 @@ class ManifestReader(object):
 
 class BigQueryUploader(ManifestReader):
     def upload(self, data_path):
+        """Upload the most recently generated prescribing data to BigQuery
+        """
         # I think it would make more sense to upload the raw data to
         # google cloud storage and then load from there
-        # XXX I am not sure what format file we're meant to be uploading
         prescribing = next(x for x in self.sources
                            if x['id'] == 'prescribing')
         importer = next(x for x in prescribing['importers']
                         if x.startswith('import_hscic_prescribing'))
         if not data_path:
-            data_path = prescribing.most_recent_file(importer)
+            data_path = prescribing.most_recent_file(importer, raise_if_imported=False)
         credentials = GoogleCredentials.get_application_default()
         bigquery = discovery.build('bigquery', 'v2', credentials=credentials)
         payload = {
@@ -206,8 +240,14 @@ class BigQueryUploader(ManifestReader):
 
 class FetcherRunner(ManifestReader):
     def prompt_all_manual_data(self):
+        """Emit a sequence of easy-to-follow instructions for freshing data.
+
+        A sticking plaster for the fact that not all sources can be
+        fetched automatically.
+
+        """
         month_and_day = datetime.datetime.now().\
-                        strftime('%Y_%m')
+            strftime('%Y_%m')
         for source in self.sources_without_fetchers:
             if 'core_data' not in source['tags']:
                 continue
@@ -238,6 +278,8 @@ class FetcherRunner(ManifestReader):
                 raw_input("Press return when done")
 
     def run_all_fetchers(self):
+        """Run every fetcher defined in the manifest
+        """
         for source in self.sources_with_fetchers:
             command = "%s fetchers/%s" % (OPENP_DATA_PYTHON, source['fetcher'])
             print "Running %s" % command
@@ -247,16 +289,24 @@ class FetcherRunner(ManifestReader):
 
 class ImporterRunner(ManifestReader):
     def update_log(self):
-        """Update the to say all importers to date have been run
+        """Update the log to indicate all importers to date have been run.
+
+        Useful if you've imported stuff manually and don't want the
+        importers to be run again.
+
         """
-        for source in self.sources_ordered_by_importers():
+        for source in self.sources_ordered_by_dependency():
             for importer in source.get('importers', []):
                 most_recent = source.most_recent_file(
                     importer, raise_if_imported=False)
-                source.save_last_imported(most_recent)
+                source.set_last_imported_filename(most_recent)
 
     def run_all_importers(self, paranoid=False):
-        for source in self.sources_ordered_by_importers():
+        """Run each importer sequentially.
+
+        On success, logs each one as imported
+        """
+        for source in self.sources_ordered_by_dependency():
             for cmd in source.importer_cmds_with_latest_data():
                 print "Importing %s with command: `%s`" % (
                     source['id'], cmd)
@@ -266,7 +316,7 @@ class ImporterRunner(ManifestReader):
                         continue
                 run_cmd = run_management_command(cmd)
                 input_file = source.filename_arg(run_cmd)
-                source.save_last_imported(input_file)
+                source.set_last_imported_filename(input_file)
 
 
 def run_management_command(cmd):
