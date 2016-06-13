@@ -52,15 +52,25 @@ For bigquery-loading support, add the following variable to your environment:
 OpenPrescribing, with descriptions and metadata.
 
 **id** *(required)*: a unique id for this source
+
 **title** *(required)*: short title for the source
+
 **description** *(required)*: description of the source, including important features, rationale for including it in OpenPrescribing, etc
+
 **fetcher**: The name of a python script, which should be placed in the `fetchers/` directory, which gets data for this source. Fetchers should be idempotent. When run, if a fetcher finds new data, it should place the new data in a timestamped folder at `data/<id>/<year>_<month>`.
+
 **importers**: a list of importers, each elemnt of which should be the name of a Django management command (plus switches) in the main app which knows how to import this data. The command must have a `--filename` switch, and the `importer` definition must include a regex as its value which is expected to match the filename
+
 **depends_on**: a list of source ids which should be imported before this source can be imported.
+
 **index_url**: a webpage where the latest version of the dataset can be found by a user
+
 **urls**: A dictionary of URLs where previous data has been found. This is informational, to help a user hunt down the latest version
+
 **tags** *(required)*: a list of tags. Only sources tagged `core_data` are considered manual sources (see below). Otherwise tags are currently just informational
+
 **publication_schedule**: a human-readable string giving the expected publication schedule
+
 **publication_lag**: a human-readable string describing how long after the reporting date the dataset is published
 
 A source without `fetchers`, and with the `core_data` tag, is deemed a
