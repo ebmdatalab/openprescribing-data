@@ -111,6 +111,7 @@
       "convert_hscic_prescribing --filename T\\d+PDPI.*BNFT\\.CSV",
       "import_hscic_prescribing --filename T\\d+PDPI.*_formatted\\.CSV"
     ],
+    "after_import": ["refresh_matviews"],
     "tags": ["core_data"],
     "depends_on": ["practice_details", "ccg_details", "nhs_postcode_file", "adqs", "bnf_codes"]
   },

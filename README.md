@@ -1,27 +1,56 @@
 # Overview
 
-Regular updating of data requires the following steps.
+## Regular updating
 
-First, source data the collection of which we've not yet automated:
+    python runner.py getmanual         # manually source some of the data
+    python runner.py getauto           # automatically source the rest
+    python runner.py runimporters      # import any previously unimported data
+    python runner.py refresh_matviews  # materialized views in DB
+    python runner.py uploaddata        # store all most recent data in Google Cloud storage
+    python runner.py updatebigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
 
-    python runner.py getmanual
+To see data in production, you should purge the Cloudflare cache. To
+do this, go to your openprescribing sandbox and run:
 
-Second, source data we can collect automatically:
+    fabric clear_cloudflare:purge_all
 
-    python runner.py getauto
+## First run (e.g. to set up dev sandbox)
 
-Finally, run all the importers for which there is fresh data, in the
-correct order (successful imports are logged to `log.json`):
+    python runner.py getauto           # grab latest version of automated data
+    python runner.py runimporters      # import any previously unimported data
+    python runner.py create_indexes    # indexes in postgres DB
+    python runner.py create_matviews   # materialized views in DB
 
-    python runner.py runimporters
 
-You can also store data in bigquery:
+## Smoke tests
 
-    python runner.py bigquery
 
-And update indexes and materialised views:
+Also:
 
-    python runner.py updatedb
+    python manage.py refresh_matviews -v 2
+
+And finally, update the smoke tests in `smoke.py` - you'll need to update `NUM_RESULTS`, plus add expected values for the latest month.
+
+Then re-run the smoke tests against the live data to make sure everything looks as you expect:
+
+    python smoketests/smoke.py
+i
+Purge Cloudflare cache with fabric
+
+
+smoketests
+Run:
+ python smoketests/smoke.py
+
+Generate data:
+* run smoke.sh
+* update smoke.py
+
+    NUM_RESULTS = 66  # Should equal number of months since Aug 2010.
+    NUM_RESULTS_CCG = 34 # Should equal number of months since Apr 2013.
+
+** I need the queries off Anna **
+
 
 # Setup
 
@@ -59,7 +88,9 @@ OpenPrescribing, with descriptions and metadata.
 
 **fetcher**: The name of a python script, which should be placed in the `fetchers/` directory, which gets data for this source. Fetchers should be idempotent. When run, if a fetcher finds new data, it should place the new data in a timestamped folder at `data/<id>/<year>_<month>`.
 
-**importers**: a list of importers, each elemnt of which should be the name of a Django management command (plus switches) in the main app which knows how to import this data. The command must have a `--filename` switch, and the `importer` definition must include a regex as its value which is expected to match the filename
+**importers**: a list of importers, each element of which should be the name of a Django management command (plus switches) in the main app which knows how to import this data. The command must have a `--filename` switch, and the `importer` definition must include a regex as its value which is expected to match the filename
+
+**after_import**: a list of Django management commands that should be run following a successful import run.
 
 **depends_on**: a list of source ids which should be imported before this source can be imported.
 

@@ -12,9 +12,11 @@ import pipes
 import time
 import os
 
-from googleapiclient import discovery
+from googleapiclient import discovery, errors
 from googleapiclient.http import MediaFileUpload
 from oauth2client.client import GoogleCredentials
+
+from utils.cloud import CloudHandler
 
 OPENP_PYTHON = os.environ['OPENP_PYTHON']
 OPENP_DATA_PYTHON = os.environ['OPENP_DATA_PYTHON']
@@ -23,6 +25,9 @@ OPENP_FRONTEND_APP_BASEDIR = os.environ['OPENP_FRONTEND_APP_BASEDIR']
 
 FILENAME_FLAGS = [
     'filename', 'ccg', 'epraccur', 'chem_file', 'hscic_address']
+# Number of bytes to send/receive in each request.
+CHUNKSIZE = 2 * 1024 * 1024
+DEFAULT_MIMETYPE = 'application/octet-stream'
 
 
 class NothingToDoError(StandardError):
@@ -157,12 +162,17 @@ class Source(UserDict.UserDict):
 
 class ManifestReader(object):
     def __init__(self):
+        super(ManifestReader, self).__init__()
         with open('manifest.json') as f:
             self.sources = map(lambda x: Source(x), json.load(f))
             self.sources_with_fetchers = filter(
                 lambda x: 'fetcher' in x, self.sources)
             self.sources_without_fetchers = filter(
                 lambda x: 'fetcher' not in x, self.sources)
+
+    def source_by_id(self, key):
+        return next(x for x in self.sources
+                    if x['id'] == key)
 
     def sources_ordered_by_dependency(self):
         """Produce a list of sources, ordered by dependency graph
@@ -179,63 +189,83 @@ class ManifestReader(object):
             key=lambda s: resolved_order.index(s['id']))
 
 
-class BigQueryUploader(ManifestReader):
-    def upload(self, data_path):
-        """Upload the most recently generated prescribing data to BigQuery
+class BigQueryUploader(ManifestReader, CloudHandler):
+    def upload_all_to_storage(self):
+        bucket = 'ebmdatalab'
+        for source in self.sources:
+            for importer in source.get('importers', []):
+                path = source.most_recent_file(
+                    importer, raise_if_imported=False)
+                name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                if self.dataset_exists(bucket, name):
+                    print "Skipping %s, already uploaded" % name
+                print "Uploading %s to %s" % (path, name)
+                self.upload(path, bucket, name)
+
+    def upload_prescribing_to_storage(self):
+        prescribing = self.source_by_id('prescribing')
+        bucket = 'ebmdatalab'
+        for importer in prescribing['importers']:
+            path = prescribing.most_recent_file(
+                importer, raise_if_imported=False)
+            object_name = os.path.split(path)[-1]
+            if 'CHEM' in path:
+                object_prefix = 'hscic/chemicals/%s'
+            elif 'ADDR' in path:
+                object_prefix = 'hscic/addresses/%s'
+            elif 'BNFT' in path:
+                object_prefix = 'hscic/prescribing/%s'
+            self.upload(path, bucket, object_prefix % object_name)
+
+    def _count_imported_data_for_filename(self, filename,
+                                          table_name='prescribing'):
+        """Given a CSV filename for prescribing data, query how many rows have
+        already been ingested for that date in the main `prescribing`
+        table.
+
         """
-        # I think it would make more sense to upload the raw data to
-        # google cloud storage and then load from there
-        prescribing = next(x for x in self.sources
-                           if x['id'] == 'prescribing')
-        importer = next(x for x in prescribing['importers']
-                        if x.startswith('import_hscic_prescribing'))
-        if not data_path:
-            data_path = prescribing.most_recent_file(importer, raise_if_imported=False)
-        credentials = GoogleCredentials.get_application_default()
-        bigquery = discovery.build('bigquery', 'v2', credentials=credentials)
-        payload = {
-            "configuration": {
-                "load": {
-                    "fieldDelimiter": ",",
-                    "sourceFormat": "CSV",
-                    "destinationTable": {
-                        "projectId": 'ebmdatalab',
-                        "tableId": 'prescribing',
-                        "datasetId": 'hscic'
-                    },
-                    "writeDisposition": "WRITE_APPEND",
-                }
-            }
-        }
-        abort = raw_input("Upload %s to BigQuery? [y/n]" %
-                          data_path).lower() != 'y'
-        if abort:
-            return
-        response = bigquery.jobs().insert(
-            projectId='ebmdatalab',
-            body=payload,
-            media_body=MediaFileUpload(
-                data_path,
-                mimetype='application/octet-stream')
-        ).execute()
-        job_id = response['jobReference']['jobId']
-        counter = 0
-        print "Waiting for job to complete..."
-        print "(It's OK to interrupt this message, though you might miss errors)"
-        while True:
-            time.sleep(1)
-            if counter % 5 == 0:
-                print "."
-            response = bigquery.jobs().get(
+        match = re.match(r'.*T(\d{6})PDPI', filename)
+        date = match.groups()[0]
+        year = date[:4]
+        month = date[4:]
+        query = ('SELECT count(*) AS count FROM [hscic.%s] '
+                 'WHERE month = "%s-%s-01 00:00:00"' %
+                 (table_name, year, month))
+        try:
+            response = self.bigquery.jobs().query(
                 projectId='ebmdatalab',
-                jobId=job_id).execute()
-            counter += 1
-            if response['status']['state'] == 'DONE':
-                if 'errors' in response['status']:
-                    raise StandardError(
-                        json.dumps(response['status']['errors'], indent=2))
-                else:
-                    print "DONE!"
+                body={'query': query}).execute()
+            return int(response['rows'][0]['f'][0]['v'])
+        except errors.HttpError as e:
+            if e.resp.status == 404:
+                # The table doesn't exist; not an error as we will create it
+                return 0
+            else:
+                raise
+
+    def update_prescribing_table(self):
+        """Update `prescribing` table from cloud-stored CSV
+        """
+        dest_table = 'prescribing_example'
+        most_recent = self.list_raw_datasets(
+            'ebmdatalab', 'hscic/prescribing')[-1]
+        count = self._count_imported_data_for_filename(
+            most_recent, table_name=dest_table)
+        if count > 0:
+            msg = "There are already %s rows for %s imported"
+            raise StandardError(msg % (count, most_recent))
+        uri = "gs://ebmdatalab/%s" % most_recent
+        query = ('SELECT sha, pct, practice, bnf_code, bnf_name, items, '
+                 'net_cost, actual_cost, quantity, '
+                 'TIMESTAMP(period + "01") AS month '
+                 'FROM [hscic.prescribing_temp] LIMIT 10')
+        print "Loading data from %s to temporary table..." % uri
+        self.load(uri, table_name="prescribing_temp")
+        print "Querying temporary table and appending to %s..." % dest_table
+        self.query_and_save(
+            query,
+            dest_table=dest_table,
+            mode='append')
 
 
 class FetcherRunner(ManifestReader):
@@ -317,9 +347,15 @@ class ImporterRunner(ManifestReader):
                 run_cmd = run_management_command(cmd)
                 input_file = source.filename_arg(run_cmd)
                 source.set_last_imported_filename(input_file)
+            if 'after_import' in source:
+                run_management_command(source['after_import'])
 
 
 def run_management_command(cmd):
+    """Run a Django management command.
+
+    Raise an exception if the command is not successful
+    """
     cmd_to_run = "%s %s/manage.py %s" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
     p = subprocess.Popen(
@@ -340,11 +376,16 @@ def run_management_command(cmd):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('command', metavar='COMMAND',
-                        nargs=1,
-                        type=str,
-                        choices=['getmanual', 'getauto', 'updatelog',
-                                 'runimporters', 'bigquery', 'updatedb'])
+    parser.add_argument(
+        'command', metavar='COMMAND',
+        nargs=1,
+        type=str,
+        choices=['getmanual', 'getauto', 'updatelog',
+                 'runimporters', 'bigquery', 'create_indexes',
+                 'create_matviews', 'refresh_matviews',
+                 'archivedata']
+
+    )
     parser.add_argument('--bigquery-file')
     parser.add_argument('--paranoid', action='store_true')
     args = parser.parse_args()
@@ -356,8 +397,13 @@ if __name__ == '__main__':
         ImporterRunner().run_all_importers(paranoid=args.paranoid)
     elif args.command[0] == 'updatelog':
         ImporterRunner().update_log()
-    elif args.command[0] == 'bigquery':
-        BigQueryUploader().upload(args.bigquery_file)
-    elif args.command[0] == 'updatedb':
+    elif args.command[0] == 'updatebigquery':
+        BigQueryUploader().update_prescribing_table()
+    elif args.command[0] == 'uploaddata':
+        BigQueryUploader().upload_all_to_storage()
+    elif args.command[0] == 'create_indexes':
         run_management_command('create_indexes')
-        run_management_command('create_matview')
+    elif args.command[0] == 'create_matviews':
+        run_management_command('create_matviews')
+    elif args.command[0] == 'refresh_matviews':
+        run_management_command('refresh_matviews')
