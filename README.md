@@ -61,7 +61,7 @@ Install python dependencies:
 Set up environment variables:
 
     OPENP_PYTHON=/webapps/openprescribing/.venv/bin/python"
-    OPENP_FRONTEND_APP_DIR=/webapps/openprescribing/openprescribing
+    OPENP_FRONTEND_APP_BASEDIR=/webapps/openprescribing/openprescribing
     OPENP_DATA_PYTHON=/home/hello/openprescribing-data/.venv/bin/python"
     OPENP_DATA_BASEDIR=/home/hello/openprescribing-data/data
 
