@@ -258,7 +258,7 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         query = ('SELECT sha, pct, practice, bnf_code, bnf_name, items, '
                  'net_cost, actual_cost, quantity, '
                  'TIMESTAMP(period + "01") AS month '
-                 'FROM [hscic.prescribing_temp] LIMIT 10')
+                 'FROM [hscic.prescribing_temp]')
         print "Loading data from %s to temporary table..." % uri
         self.load(uri, table_name="prescribing_temp")
         print "Querying temporary table and appending to %s..." % dest_table
