@@ -8,6 +8,9 @@
     python runner.py refresh_matviews  # materialized views in DB
     python runner.py uploaddata        # store all most recent data in Google Cloud storage
     python runner.py updatebigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    python runner.py updatesmoketests  # update smoke tests
+    python runner.py runsmoketests     # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    git commit -am "Update smoketests"
 
 To see data in production, you should purge the Cloudflare cache. To
 do this, go to your openprescribing sandbox and run:
@@ -21,6 +24,9 @@ do this, go to your openprescribing sandbox and run:
     python runner.py create_indexes    # indexes in postgres DB
     python runner.py create_matviews   # materialized views in DB
 
+XXX some of these commands validate/execute inconsitently
+
+Smoketests
 
 ## Smoke tests
 

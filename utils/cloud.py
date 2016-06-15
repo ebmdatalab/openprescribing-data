@@ -220,6 +220,17 @@ class CloudHandler(object):
             page_token = response.get('nextPageToken', None)
         return table_ids
 
+    def rows_to_dict(self, bigquery_result):
+        fields = bigquery_result['schema']['fields']
+        for row in bigquery_result['rows']:
+            dict_row = {}
+            for i, item in enumerate(row['f']):
+                value = item['v']
+                key = fields[i]['name']
+                dict_row[key] = value
+            yield dict_row
+
+
     def upload(self, filename, bucket_name, object_name):
         assert bucket_name and object_name
         print 'Building upload request...'

@@ -45,7 +45,7 @@ class Source(UserDict.UserDict):
         UserDict.UserDict.__init__(self)
         self.data = source
 
-    def last_imported_filename(self, file_regex):
+    def last_imported_file(self, file_regex):
         """Return the full path to the most recently imported data for this
         source.
 
@@ -65,7 +65,7 @@ class Source(UserDict.UserDict):
                 if matches:
                     return sorted(
                         matches,
-                        key=lambda x: x['imported_at'])[-1]['imported_file']
+                        key=lambda x: x['imported_at'])[-1]
 
     def set_last_imported_filename(self, filename):
         """Set the path of the most recently imported data for this source
@@ -127,7 +127,7 @@ class Source(UserDict.UserDict):
                 "Couldn't find a file matching %s at %s/%s" %
                 (file_regex, OPENP_DATA_BASEDIR, self['id']))
         most_recent = sorted(candidates)[-1]
-        last_imported_file = self.last_imported_filename(file_regex)
+        last_imported_file = self.last_imported_file(file_regex)['imported_file']
         if raise_if_imported and last_imported_file:
             last_imported_date = last_imported_file.split("/")[-2]
             most_recent_date = most_recent.split("/")[-2]
@@ -188,6 +188,41 @@ class ManifestReader(object):
             self.sources,
             key=lambda s: resolved_order.index(s['id']))
 
+class SmokeTestHandler(ManifestReader, CloudHandler):
+    def run_smoketests(self):
+        prescribing = self.source_by_id('prescribing')
+        last_imported = prescribing.last_imported_file(
+            r'_formatted\.CSV$')['imported_file']
+        date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
+        command = "%s smoketests/smoke.py" % OPENP_DATA_PYTHON
+        my_env = os.environ.copy()
+        my_env['LAST_IMPORTED'] = date
+        print "Running %s with LAST_IMPORTED=%s" % (command, date)
+        subprocess.check_call(shlex.split(command), env=my_env)
+
+    def update_smoketests(self):
+        for sql_file in glob.glob('smoketests/*sql'):
+            test_name = os.path.splitext(
+                os.path.basename(sql_file))[0]
+            with open(sql_file, 'rb') as f:
+                query = f.read()
+                response = self.bigquery.jobs().query(
+                    projectId='ebmdatalab',
+                    body={'useLegacySql': False, 'timeoutMs': 20000, 'query': query}).execute()
+                # XXX or something:
+                quantity = []
+                cost = []
+                items = []
+                for r in self.rows_to_dict(response):
+                    quantity.append(r['quantity'])
+                    cost.append(r['actual_cost'])
+                    items.append(r['items'])
+                print "Updating test expectations for %s" % test_name
+                with open("%s.json" % test_name, 'wb') as f:
+                    obj = {'cost': cost,
+                           'items': items,
+                           'quantity': quantity}
+                    json.dump(obj, f, indent=2)
 
 class BigQueryUploader(ManifestReader, CloudHandler):
     def upload_all_to_storage(self):
@@ -313,7 +348,6 @@ class FetcherRunner(ManifestReader):
         for source in self.sources_with_fetchers:
             command = "%s fetchers/%s" % (OPENP_DATA_PYTHON, source['fetcher'])
             print "Running %s" % command
-
             subprocess.check_call(shlex.split(command))
 
 
@@ -383,8 +417,7 @@ if __name__ == '__main__':
         choices=['getmanual', 'getauto', 'updatelog',
                  'runimporters', 'bigquery', 'create_indexes',
                  'create_matviews', 'refresh_matviews',
-                 'archivedata']
-
+                 'archivedata', 'smoketests', 'updatesmoketests', 'runsmoketests']
     )
     parser.add_argument('--bigquery-file')
     parser.add_argument('--paranoid', action='store_true')
@@ -397,7 +430,7 @@ if __name__ == '__main__':
         ImporterRunner().run_all_importers(paranoid=args.paranoid)
     elif args.command[0] == 'updatelog':
         ImporterRunner().update_log()
-    elif args.command[0] == 'updatebigquery':
+    elif args.command[0] == 'bigquery':
         BigQueryUploader().update_prescribing_table()
     elif args.command[0] == 'uploaddata':
         BigQueryUploader().upload_all_to_storage()
@@ -407,3 +440,7 @@ if __name__ == '__main__':
         run_management_command('create_matviews')
     elif args.command[0] == 'refresh_matviews':
         run_management_command('refresh_matviews')
+    elif args.command[0] == 'updatesmoketests':
+        SmokeTestHandler().update_smoketests()
+    elif args.command[0] == 'runsmoketests':
+        SmokeTestHandler().run_smoketests()
