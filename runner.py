@@ -418,7 +418,7 @@ def run_management_command(cmd):
 
     Raise an exception if the command is not successful
     """
-    cmd_to_run = "%s %s/manage.py %s" % (
+    cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
     p = subprocess.Popen(
         shlex.split(cmd_to_run),

@@ -2,12 +2,23 @@
 
 ## Regular updating
 
+You should probably do this in a `screen` session on the production
+server, as the `refresh_matviews` part, in particular, takes very many
+hours.  To do so:
+
+    ssh hello@openp
+    screen -S monthly-data-update
+    cd /webapps/openprescribing-data/
+    source .venv/bin/activate
+
+Then you can do the following:
+
     python runner.py getmanual         # manually source some of the data
     python runner.py getauto           # automatically source the rest
-    python runner.py runimporters      # import any previously unimported data
-    python runner.py refresh_matviews  # materialized views in DB
     python runner.py uploaddata        # store all most recent data in Google Cloud storage
     python runner.py updatebigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    python runner.py runimporters      # import any previously unimported data
+    python runner.py refresh_matviews  # materialized views in DB
     python runner.py updatesmoketests  # update smoke tests
     python runner.py runsmoketests     # store latest prescribing data to BQ (requires `uploaddata` to have been run)
     git commit -am "Update smoketests"
@@ -17,46 +28,13 @@ do this, go to your openprescribing sandbox and run:
 
     fabric clear_cloudflare:purge_all
 
-## First run (e.g. to set up dev sandbox)
+## Set up a dev sandbox
 
     touch log.json
     python runner.py getdata           # grab latest version of data from Google Cloud
     python runner.py runimporters      # import any previously unimported data
     python runner.py create_indexes    # indexes in postgres DB
-    python runner.py create_matviews   # materialized views in DB
-
-XXX some of these commands validate/execute inconsitently
-
-Smoketests
-
-## Smoke tests
-
-
-Also:
-
-    python manage.py refresh_matviews -v 2
-
-And finally, update the smoke tests in `smoke.py` - you'll need to update `NUM_RESULTS`, plus add expected values for the latest month.
-
-Then re-run the smoke tests against the live data to make sure everything looks as you expect:
-
-    python smoketests/smoke.py
-i
-Purge Cloudflare cache with fabric
-
-
-smoketests
-Run:
- python smoketests/smoke.py
-
-Generate data:
-* run smoke.sh
-* update smoke.py
-
-    NUM_RESULTS = 66  # Should equal number of months since Aug 2010.
-    NUM_RESULTS_CCG = 34 # Should equal number of months since Apr 2013.
-
-** I need the queries off Anna **
+    python runner.py create_matviews   # materialized views in DB. Takes ages.
 
 
 # Setup
