@@ -19,7 +19,8 @@ do this, go to your openprescribing sandbox and run:
 
 ## First run (e.g. to set up dev sandbox)
 
-    python runner.py getauto           # grab latest version of automated data
+    touch log.json
+    python runner.py getdata           # grab latest version of data from Google Cloud
     python runner.py runimporters      # import any previously unimported data
     python runner.py create_indexes    # indexes in postgres DB
     python runner.py create_matviews   # materialized views in DB

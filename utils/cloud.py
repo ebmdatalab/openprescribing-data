@@ -25,6 +25,7 @@ from apiclient.errors import HttpError
 from oauth2client.client import GoogleCredentials
 from googleapiclient import discovery
 from apiclient.http import MediaFileUpload
+from apiclient.http import MediaIoBaseDownload
 from json import dumps as json_dumps
 
 # Retry transport and file IO errors.
@@ -185,7 +186,7 @@ class CloudHandler(object):
             page_token = response.get('nextPageToken', None)
         if name_regex:
             dataset_ids = filter(
-                lambda x: re.match(name_regex, x['name']), dataset_ids)
+                lambda x: re.findall(name_regex, x['name']), dataset_ids)
         dataset_ids = sorted(
             dataset_ids, key=lambda x: x['timeCreated'])
         dataset_ids = map(
@@ -230,6 +231,15 @@ class CloudHandler(object):
                 dict_row[key] = value
             yield dict_row
 
+    def download(self, filename, bucket_name, object_name):
+        with open(filename, 'wb') as f:
+            req = self.cloud.objects().get_media(
+                bucket=bucket_name, object=object_name)
+            downloader = MediaIoBaseDownload(f, req)
+            done = False
+            while done is False:
+                status, done = downloader.next_chunk()
+                print("Download {}%.".format(int(status.progress() * 100)))
 
     def upload(self, filename, bucket_name, object_name):
         assert bucket_name and object_name

@@ -9,12 +9,8 @@ import UserDict
 import textwrap
 import argparse
 import pipes
-import time
 import os
-
-from googleapiclient import discovery, errors
-from googleapiclient.http import MediaFileUpload
-from oauth2client.client import GoogleCredentials
+import errno
 
 from utils.cloud import CloudHandler
 
@@ -28,6 +24,16 @@ FILENAME_FLAGS = [
 # Number of bytes to send/receive in each request.
 CHUNKSIZE = 2 * 1024 * 1024
 DEFAULT_MIMETYPE = 'application/octet-stream'
+
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 class NothingToDoError(StandardError):
@@ -53,10 +59,7 @@ class Source(UserDict.UserDict):
 
         """
         with open('log.json', 'r') as f:
-            try:
-                log = json.load(f)
-            except ValueError:
-                log = {}
+            log = json.load(f)
             dates = log.get(self['id'], [])
             if dates:
                 matches = filter(
@@ -127,9 +130,9 @@ class Source(UserDict.UserDict):
                 "Couldn't find a file matching %s at %s/%s" %
                 (file_regex, OPENP_DATA_BASEDIR, self['id']))
         most_recent = sorted(candidates)[-1]
-        last_imported_file = self.last_imported_file(file_regex)['imported_file']
+        last_imported_file = self.last_imported_file(file_regex)
         if raise_if_imported and last_imported_file:
-            last_imported_date = last_imported_file.split("/")[-2]
+            last_imported_date = last_imported_file['imported_file'].split("/")[-2]
             most_recent_date = most_recent.split("/")[-2]
             if last_imported_date >= most_recent_date:
                 raise NothingToDoError()
@@ -224,7 +227,33 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
                            'quantity': quantity}
                     json.dump(obj, f, indent=2)
 
-class BigQueryUploader(ManifestReader, CloudHandler):
+
+class BigQueryDownloader(ManifestReader, CloudHandler):
+    def download_all(self):
+        bucket = 'ebmdatalab'
+        for source in self.sources:
+            base_name = 'hscic/%s' % source['id']
+            for importer in source.get('importers', []):
+                filename_regex = source.filename_arg(importer)
+                try:
+                    most_recent = self.list_raw_datasets(
+                        bucket, prefix=base_name,
+                        name_regex=filename_regex)[-1]
+                except IndexError:
+                    print "No file in Cloud at %s matching %s" % (
+                        base_name, filename_regex)
+                    continue
+                target_file = os.path.join(
+                    OPENP_DATA_BASEDIR,
+                    most_recent.replace('hscic/', ''))
+                target_dir = os.path.split(target_file)[0]
+                if os.path.exists(target_file):
+                    print "%s exists; skipping" % target_file
+                else:
+                    print "Downloading %s to %s" % (most_recent, target_file)
+                    mkdir_p(target_dir)
+                    self.download(target_file, bucket, most_recent)
+
     def upload_all_to_storage(self):
         bucket = 'ebmdatalab'
         for source in self.sources:
@@ -237,20 +266,18 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                 print "Uploading %s to %s" % (path, name)
                 self.upload(path, bucket, name)
 
-    def upload_prescribing_to_storage(self):
-        prescribing = self.source_by_id('prescribing')
+class BigQueryUploader(ManifestReader, CloudHandler):
+    def upload_all_to_storage(self):
         bucket = 'ebmdatalab'
-        for importer in prescribing['importers']:
-            path = prescribing.most_recent_file(
-                importer, raise_if_imported=False)
-            object_name = os.path.split(path)[-1]
-            if 'CHEM' in path:
-                object_prefix = 'hscic/chemicals/%s'
-            elif 'ADDR' in path:
-                object_prefix = 'hscic/addresses/%s'
-            elif 'BNFT' in path:
-                object_prefix = 'hscic/prescribing/%s'
-            self.upload(path, bucket, object_prefix % object_name)
+        for source in self.sources:
+            for importer in source.get('importers', []):
+                path = source.most_recent_file(
+                    importer, raise_if_imported=False)
+                name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                if self.dataset_exists(bucket, name):
+                    print "Skipping %s, already uploaded" % name
+                print "Uploading %s to %s" % (path, name)
+                self.upload(path, bucket, name)
 
     def _count_imported_data_for_filename(self, filename,
                                           table_name='prescribing'):
@@ -283,7 +310,8 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         """
         dest_table = 'prescribing_example'
         most_recent = self.list_raw_datasets(
-            'ebmdatalab', 'hscic/prescribing')[-1]
+            'ebmdatalab', prefix='hscic/prescribing',
+            name_regex=r'BNFT\.CSV')[-1]
         count = self._count_imported_data_for_filename(
             most_recent, table_name=dest_table)
         if count > 0:
@@ -381,8 +409,8 @@ class ImporterRunner(ManifestReader):
                 run_cmd = run_management_command(cmd)
                 input_file = source.filename_arg(run_cmd)
                 source.set_last_imported_filename(input_file)
-            if 'after_import' in source:
-                run_management_command(source['after_import'])
+            #if 'after_import' in source:
+            #    run_management_command(source['after_import'])
 
 
 def run_management_command(cmd):
@@ -417,7 +445,7 @@ if __name__ == '__main__':
         choices=['getmanual', 'getauto', 'updatelog',
                  'runimporters', 'bigquery', 'create_indexes',
                  'create_matviews', 'refresh_matviews',
-                 'archivedata', 'smoketests', 'updatesmoketests', 'runsmoketests']
+                 'archivedata', 'smoketests', 'updatesmoketests', 'runsmoketests', 'getdata']
     )
     parser.add_argument('--bigquery-file')
     parser.add_argument('--paranoid', action='store_true')
@@ -432,8 +460,10 @@ if __name__ == '__main__':
         ImporterRunner().update_log()
     elif args.command[0] == 'bigquery':
         BigQueryUploader().update_prescribing_table()
-    elif args.command[0] == 'uploaddata':
+    elif args.command[0] == 'archivedata':
         BigQueryUploader().upload_all_to_storage()
+    elif args.command[0] == 'getdata':
+        BigQueryDownloader().download_all()
     elif args.command[0] == 'create_indexes':
         run_management_command('create_indexes')
     elif args.command[0] == 'create_matviews':
