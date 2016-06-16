@@ -420,6 +420,7 @@ def run_management_command(cmd):
     """
     cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
+    now = datetime.datetime.now()
     p = subprocess.Popen(
         shlex.split(cmd_to_run),
         stderr=subprocess.PIPE,
@@ -428,6 +429,7 @@ def run_management_command(cmd):
     )
     stdout, stderr = p.communicate()
     print stdout
+    print "Command completed in %s seconds" % (datetime.datetime.now() - start).seconds
     if p.returncode:
         error = "Problem when running %s\n" % cmd
         error += stdout + "\n"
