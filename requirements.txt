@@ -3,3 +3,4 @@ lxml
 python-dateutil
 networkx
 google-api-python-client
+retrying
