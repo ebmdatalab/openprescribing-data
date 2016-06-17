@@ -28,6 +28,21 @@
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {
+    "id": "measures",
+    "data_dir": "prescribing",
+    "title": "Calculate common measures",
+    "description": "Not a datset, but a command that should be run after other data has been imported",
+    "publisher": "",
+    "publication_schedule": "",
+    "publication_lag": "",
+    "index_url": "",
+    "notes": "",
+    "requires_captcha": true,
+    "tags": ["core_data"],
+    "importers": ["import_measures --month_from_prescribing_filename T\\d+PDPI.*_formatted\\.CSV"],
+    "depends_on": ["patient_list_size"]
+  },
+  {
     "id": "bnf_codes",
     "title": "Human readable terms for BNF prescription codes",
     "description": "Every row of prescribing data has a `presentation` field, a 15 character code that encodes the chemical, a classification, and its formulation (e.g. 5ml per 100ml solution, etc). The BNF codes allow us to decode the presentation.",

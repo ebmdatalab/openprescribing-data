@@ -20,7 +20,8 @@ OPENP_DATA_BASEDIR = os.environ['OPENP_DATA_BASEDIR']
 OPENP_FRONTEND_APP_BASEDIR = os.environ['OPENP_FRONTEND_APP_BASEDIR']
 
 FILENAME_FLAGS = [
-    'filename', 'ccg', 'epraccur', 'chem_file', 'hscic_address']
+    'filename', 'ccg', 'epraccur', 'chem_file', 'hscic_address',
+    'month_from_prescribing_filename']
 # Number of bytes to send/receive in each request.
 CHUNKSIZE = 2 * 1024 * 1024
 DEFAULT_MIMETYPE = 'application/octet-stream'
@@ -121,14 +122,15 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        files = glob.glob("%s/%s/*/*" % (OPENP_DATA_BASEDIR, self['id']))
+        data_location = os.path.join(OPENP_DATA_BASEDIR, self.get('data_dir', self['id']))
+        files = glob.glob("%s/*/*" % data_location)
         candidates = filter(
             lambda x: re.findall(file_regex, x),
             files)
         if len(candidates) == 0:
             raise StandardError(
                 "Couldn't find a file matching %s at %s/%s" %
-                (file_regex, OPENP_DATA_BASEDIR, self['id']))
+                (file_regex, OPENP_DATA_BASEDIR, data_location))
         most_recent = sorted(candidates)[-1]
         last_imported_file = self.last_imported_file(file_regex)
         if raise_if_imported and last_imported_file:
@@ -418,6 +420,7 @@ def run_management_command(cmd):
 
     Raise an exception if the command is not successful
     """
+    start = datetime.datetime.now()
     cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
     now = datetime.datetime.now()
