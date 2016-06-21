@@ -110,6 +110,39 @@ class Source(UserDict.UserDict):
                 % cmd_string)
         return cmd_parts[filename_idx]
 
+    def files_by_date(self, importer):
+        if importer:
+            file_regex = self.filename_arg(importer)
+        else:
+            file_regex = '.*'
+        data_location = os.path.join(
+            OPENP_DATA_BASEDIR, self.get('data_dir', self['id']))
+        files = glob.glob("%s/*/*" % data_location)
+        candidates = filter(
+            lambda x: re.findall(file_regex, x),
+            files)
+        if len(candidates) == 0:
+            raise StandardError(
+                "Couldn't find a file matching %s at %s/%s" %
+                (file_regex, OPENP_DATA_BASEDIR, data_location))
+        return sorted(candidates)
+
+    def unimported_files(self, importer):
+        """Return a list of files that have not been imported for a given
+        importer.
+
+        """
+        if importer:
+            file_regex = self.filename_arg(importer)
+        else:
+            file_regex = '.*'
+        assume_imported_to = self.last_imported_file(file_regex)
+        last_imported_date = assume_imported_to['imported_file'].split("/")[-2]
+        all_files = self.files_by_date(importer)
+        return filter(
+            lambda x: x.split('/')[-2] >= last_imported_date,
+            all_files)
+
     def most_recent_file(self, importer, raise_if_imported=True):
         """Return the most recently generated data file for the specified
         importer.
@@ -122,16 +155,7 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        data_location = os.path.join(OPENP_DATA_BASEDIR, self.get('data_dir', self['id']))
-        files = glob.glob("%s/*/*" % data_location)
-        candidates = filter(
-            lambda x: re.findall(file_regex, x),
-            files)
-        if len(candidates) == 0:
-            raise StandardError(
-                "Couldn't find a file matching %s at %s/%s" %
-                (file_regex, OPENP_DATA_BASEDIR, data_location))
-        most_recent = sorted(candidates)[-1]
+        most_recent = self.unimported_files()[-1]
         last_imported_file = self.last_imported_file(file_regex)
         if raise_if_imported and last_imported_file:
             last_imported_date = last_imported_file['imported_file'].split("/")[-2]
@@ -151,17 +175,10 @@ class Source(UserDict.UserDict):
         """
         cmds = []
         for importer in self.get('importers', []):
-            try:
-                latest_data = self.most_recent_file(importer)
+            for latest_data in self.unimported_files(importer):
                 filename_regex = self.filename_arg(importer)
                 cmds.append(importer.replace(
                     filename_regex, pipes.quote(latest_data)))
-            except NothingToDoError:
-                print "Skipping processing %s" % self['id']
-                latest_data = self.most_recent_file(
-                    importer, raise_if_imported=False)
-                print "    Last processed: %s" % \
-                    latest_data.replace(OPENP_DATA_BASEDIR, '')
         return cmds
 
 
@@ -262,13 +279,12 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         bucket = 'ebmdatalab'
         for source in self.sources:
             for importer in source.get('importers', []):
-                path = source.most_recent_file(
-                    importer, raise_if_imported=False)
-                name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
-                if self.dataset_exists(bucket, name):
-                    print "Skipping %s, already uploaded" % name
-                print "Uploading %s to %s" % (path, name)
-                self.upload(path, bucket, name)
+                for path in source.files_by_date(importer):
+                    name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                    if self.dataset_exists(bucket, name):
+                        print "Skipping %s, already uploaded" % name
+                    print "Uploading %s to %s" % (path, name)
+                    self.upload(path, bucket, name)
 
     def _count_imported_data_for_filename(self, filename,
                                           table_name='prescribing'):
