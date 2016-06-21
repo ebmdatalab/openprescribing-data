@@ -149,7 +149,7 @@ class Source(UserDict.UserDict):
         try:
             all_files = self.files_by_date(importer)
             return filter(
-                lambda x: x.split('/')[-2] >= last_imported_date,
+                lambda x: x.split('/')[-2] < last_imported_date,
                 all_files)
         except FileNotFoundError:
             return []
