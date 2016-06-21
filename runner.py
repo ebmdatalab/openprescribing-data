@@ -141,11 +141,18 @@ class Source(UserDict.UserDict):
         else:
             file_regex = '.*'
         assume_imported_to = self.last_imported_file(file_regex)
-        last_imported_date = assume_imported_to['imported_file'].split("/")[-2]
-        all_files = self.files_by_date(importer)
-        return filter(
-            lambda x: x.split('/')[-2] >= last_imported_date,
-            all_files)
+        if assume_imported_to:
+            last_imported_date = \
+              assume_imported_to['imported_file'].split("/")[-2]
+        else:
+            last_imported_date = ""
+        try:
+            all_files = self.files_by_date(importer)
+            return filter(
+                lambda x: x.split('/')[-2] >= last_imported_date,
+                all_files)
+        except FileNotFoundError:
+            return []
 
     def most_recent_file(self, importer, raise_if_imported=True):
         """Return the most recently generated data file for the specified
@@ -235,7 +242,6 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
                 response = self.bigquery.jobs().query(
                     projectId='ebmdatalab',
                     body={'useLegacySql': False, 'timeoutMs': 20000, 'query': query}).execute()
-                # XXX or something:
                 quantity = []
                 cost = []
                 items = []
@@ -418,18 +424,26 @@ class ImporterRunner(ManifestReader):
         On success, logs each one as imported
         """
         for source in self.sources_ordered_by_dependency():
-            for cmd in source.importer_cmds_with_latest_data():
-                print "Importing %s with command: `%s`" % (
-                    source['id'], cmd)
-                if paranoid:
-                    if raw_input("Continue? [y/n]").lower() != 'y':
-                        print "  Skipping...."
-                        continue
-                run_cmd = run_management_command(cmd)
-                input_file = source.filename_arg(run_cmd)
-                source.set_last_imported_filename(input_file)
-            #if 'after_import' in source:
-            #    run_management_command(source['after_import'])
+            # XXX special case prescribing source to run twice. This
+            # is because the first time, the formatted version of the
+            # file has not been generated. This needs to be fixed to
+            # be more elegant, e.g. by moving the conversion to a
+            # pre-import step
+            for attempt in range(2):
+                for cmd in source.importer_cmds_with_latest_data():
+                    print "Importing %s with command: `%s`" % (
+                        source['id'], cmd)
+                    if paranoid:
+                        if raw_input("Continue? [y/n]").lower() != 'y':
+                            print "  Skipping...."
+                            continue
+                    run_cmd = run_management_command(cmd)
+                    input_file = source.filename_arg(run_cmd)
+                    source.set_last_imported_filename(input_file)
+                if source['id'] != 'prescribing':
+                    break
+        if 'after_import' in source:
+            run_management_command(source['after_import'])
 
 
 def run_management_command(cmd):
