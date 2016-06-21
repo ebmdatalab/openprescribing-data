@@ -256,17 +256,6 @@ class BigQueryDownloader(ManifestReader, CloudHandler):
                     mkdir_p(target_dir)
                     self.download(target_file, bucket, most_recent)
 
-    def upload_all_to_storage(self):
-        bucket = 'ebmdatalab'
-        for source in self.sources:
-            for importer in source.get('importers', []):
-                path = source.most_recent_file(
-                    importer, raise_if_imported=False)
-                name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
-                if self.dataset_exists(bucket, name):
-                    print "Skipping %s, already uploaded" % name
-                print "Uploading %s to %s" % (path, name)
-                self.upload(path, bucket, name)
 
 class BigQueryUploader(ManifestReader, CloudHandler):
     def upload_all_to_storage(self):
