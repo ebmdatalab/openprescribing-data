@@ -45,6 +45,10 @@ class ManifestError(StandardError):
     pass
 
 
+class FileNotFoundError(StandardError):
+    pass
+
+
 class Source(UserDict.UserDict):
     """Adds business logic to a row of data in `manifest.json`
     """
@@ -122,7 +126,7 @@ class Source(UserDict.UserDict):
             lambda x: re.findall(file_regex, x),
             files)
         if len(candidates) == 0:
-            raise StandardError(
+            raise FileNotFoundError(
                 "Couldn't find a file matching %s at %s/%s" %
                 (file_regex, OPENP_DATA_BASEDIR, data_location))
         return sorted(candidates)
@@ -279,12 +283,15 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         bucket = 'ebmdatalab'
         for source in self.sources:
             for importer in source.get('importers', []):
-                for path in source.files_by_date(importer):
-                    name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
-                    if self.dataset_exists(bucket, name):
-                        print "Skipping %s, already uploaded" % name
-                    print "Uploading %s to %s" % (path, name)
-                    self.upload(path, bucket, name)
+                try:
+                    for path in source.files_by_date(importer):
+                        name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                        if self.dataset_exists(bucket, name):
+                            print "Skipping %s, already uploaded" % name
+                        print "Uploading %s to %s" % (path, name)
+                        self.upload(path, bucket, name)
+                except FileNotFoundError:
+                    pass
 
     def _count_imported_data_for_filename(self, filename,
                                           table_name='prescribing'):
