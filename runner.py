@@ -323,26 +323,31 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         """Update `prescribing` table from cloud-stored CSV
         """
         dest_table = 'prescribing_example'
-        most_recent = self.list_raw_datasets(
+        months_to_consider = 3
+        # build a list of datasets not already dealt with
+        raw_datasets = self.list_raw_datasets(
             'ebmdatalab', prefix='hscic/prescribing',
-            name_regex=r'BNFT\.CSV')[-1]
-        count = self._count_imported_data_for_filename(
-            most_recent, table_name=dest_table)
-        if count > 0:
-            msg = "There are already %s rows for %s imported"
-            raise StandardError(msg % (count, most_recent))
-        uri = "gs://ebmdatalab/%s" % most_recent
-        query = ('SELECT sha, pct, practice, bnf_code, bnf_name, items, '
-                 'net_cost, actual_cost, quantity, '
-                 'TIMESTAMP(period + "01") AS month '
-                 'FROM [hscic.prescribing_temp]')
-        print "Loading data from %s to temporary table..." % uri
-        self.load(uri, table_name="prescribing_temp")
-        print "Querying temporary table and appending to %s..." % dest_table
-        self.query_and_save(
-            query,
-            dest_table=dest_table,
-            mode='append')
+            name_regex=r'BNFT\.CSV')
+        for dataset in raw_datasets[-months_to_consider:]:
+            count = self._count_imported_data_for_filename(
+                dataset, table_name=dest_table)
+            if count > 0:
+                msg = "There are already %s rows for %s imported"
+                print msg % (count, dataset)
+            else:
+                uri = "gs://ebmdatalab/%s" % dataset
+                query = ('SELECT sha, pct, practice, bnf_code, bnf_name, '
+                         'items, net_cost, actual_cost, quantity, '
+                         'TIMESTAMP(period + "01") AS month '
+                         'FROM [hscic.prescribing_temp]')
+                print "Loading data from %s to temporary table..." % uri
+                self.load(uri, table_name="prescribing_temp")
+                print ("Querying temporary table and appending to %s..."
+                       % dest_table)
+                self.query_and_save(
+                    query,
+                    dest_table=dest_table,
+                    mode='append')
 
 
 class FetcherRunner(ManifestReader):
