@@ -8,15 +8,17 @@ hours.  To do so:
 
     ssh hello@openp
     screen -S monthly-data-update
-    cd /webapps/openprescribing-data/
+    cd ~/openprescribing-data/
     source .venv/bin/activate
 
-Then you can do the following:
+### General commands
+
+When your environment is set up (see below), you can do the following:
 
     python runner.py getmanual         # manually source some of the data
     python runner.py getauto           # automatically source the rest
-    python runner.py uploaddata        # store all most recent data in Google Cloud storage
-    python runner.py updatebigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    python runner.py archivedata       # store all most recent data in Google Cloud storage
+    python runner.py bigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
     python runner.py runimporters      # import any previously unimported data
     python runner.py refresh_matviews  # materialized views in DB
     python runner.py updatesmoketests  # update smoke tests
