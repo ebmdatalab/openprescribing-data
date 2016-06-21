@@ -54,7 +54,8 @@ class Command(BaseCommand):
                         print "Profile hidden"
                         continue
                     else:
-                        raise
+                        print "Other error: %s" % content.text_content()
+                        continue
                 datum['name'] = content.xpath('//*[@id="org-title"]/text()')[0]
                 headings = ['Tel', 'Fax', 'Address', 'Email', 'Website']
                 for heading in headings:
