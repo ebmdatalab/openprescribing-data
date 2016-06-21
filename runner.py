@@ -327,7 +327,7 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         # build a list of datasets not already dealt with
         raw_datasets = self.list_raw_datasets(
             'ebmdatalab', prefix='hscic/prescribing',
-            name_regex=r'BNFT\.CSV')
+            name_regex=r'PDPI.BNFT\.CSV')
         for dataset in raw_datasets[-months_to_consider:]:
             count = self._count_imported_data_for_filename(
                 dataset, table_name=dest_table)
