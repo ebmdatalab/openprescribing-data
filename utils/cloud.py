@@ -174,24 +174,27 @@ class CloudHandler(object):
             bucket=bucket,
             prefix=prefix).execute()
         page_token = response.get('nextPageToken', None)
-        dataset_ids += response["items"]
-        while page_token:
-            response = self.cloud.objects().list(
-                bucket='ebmdatalab',
-                pageToken=page_token,
-                prefix='hscic/prescribing').execute()
-            if 'items' not in response:
-                break
+        if 'items' in response:
             dataset_ids += response["items"]
-            page_token = response.get('nextPageToken', None)
-        if name_regex:
-            dataset_ids = filter(
-                lambda x: re.findall(name_regex, x['name']), dataset_ids)
-        dataset_ids = sorted(
-            dataset_ids, key=lambda x: x['timeCreated'])
-        dataset_ids = map(
-            lambda x: x['name'], dataset_ids)
-        return dataset_ids
+            while page_token:
+                response = self.cloud.objects().list(
+                    bucket='ebmdatalab',
+                    pageToken=page_token,
+                    prefix='hscic/prescribing').execute()
+                if 'items' not in response:
+                    break
+                dataset_ids += response["items"]
+                page_token = response.get('nextPageToken', None)
+            if name_regex:
+                dataset_ids = filter(
+                    lambda x: re.findall(name_regex, x['name']), dataset_ids)
+            dataset_ids = sorted(
+                dataset_ids, key=lambda x: x['timeCreated'])
+            dataset_ids = map(
+                lambda x: x['name'], dataset_ids)
+            return dataset_ids
+        else:
+            return []
 
     def list_tables(self):
         page_token = None
