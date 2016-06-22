@@ -443,6 +443,11 @@ class ImporterRunner(ManifestReader):
                 if source['id'] != 'prescribing':
                     break
             if 'after_import' in source:
+                print "Running after_import step %s" % source['after_import']
+                if paranoid:
+                    if raw_input("Continue? [y/n]").lower() != 'y':
+                        print "  Skipping...."
+                        continue
                 run_management_command(source['after_import'])
 
 
