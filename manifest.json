@@ -24,7 +24,7 @@
     "notes": "If you want to add list size data for only part of a quarter - which will be the case if the HSCIC file is not for the last month of a quarter - then rename the filename to cover only those months.",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": ["import_lifst_sizes --filename Patient_List_Size.*csv"],
+    "importers": ["import_list_sizes --filename Patient_List_Size.*csv"],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {
