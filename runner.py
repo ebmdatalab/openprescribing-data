@@ -442,8 +442,8 @@ class ImporterRunner(ManifestReader):
                     source.set_last_imported_filename(input_file)
                 if source['id'] != 'prescribing':
                     break
-        if 'after_import' in source:
-            run_management_command(source['after_import'])
+            if 'after_import' in source:
+                run_management_command(source['after_import'])
 
 
 def run_management_command(cmd):
