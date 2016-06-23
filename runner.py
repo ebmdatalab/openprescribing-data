@@ -56,11 +56,8 @@ class Source(UserDict.UserDict):
         UserDict.UserDict.__init__(self)
         self.data = source
 
-    def last_imported_file(self, file_regex):
-        """Return the full path to the most recently imported data for this
-        source.
-
-        Returns None if no data has been imported.
+    def imported_files(self, file_regex):
+        """Return an array full paths to all imported data for this source.
 
         """
         with open('log.json', 'r') as f:
@@ -73,7 +70,20 @@ class Source(UserDict.UserDict):
                 if matches:
                     return sorted(
                         matches,
-                        key=lambda x: x['imported_at'])[-1]
+                        key=lambda x: x['imported_at'])
+        return []
+
+
+    def last_imported_file(self, file_regex):
+        """Return the full path to the most recently imported data for this
+        source.
+
+        Returns None if no data has been imported.
+
+        """
+        imported_files = self.imported_files(file_regex)[-1]
+        if imported_files:
+            return imported_files[-1]
 
     def set_last_imported_filename(self, filename):
         """Set the path of the most recently imported data for this source
@@ -140,16 +150,14 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        assume_imported_to = self.last_imported_file(file_regex)
-        if assume_imported_to:
-            last_imported_date = \
-              assume_imported_to['imported_file'].split("/")[-2]
-        else:
-            last_imported_date = ""
+        imported_file_dates = [
+            x['imported_file'].split("/")[-2]
+            for x in self.imported_files(file_regex)
+        ]
         try:
             all_files = self.files_by_date(importer)
             return filter(
-                lambda x: x.split('/')[-2] < last_imported_date,
+                lambda x: x.split('/')[-2] not in imported_file_dates,
                 all_files)
         except FileNotFoundError:
             return []
@@ -433,25 +441,32 @@ class ImporterRunner(ManifestReader):
                 for cmd in source.importer_cmds_with_latest_data():
                     print "Importing %s with command: `%s`" % (
                         source['id'], cmd)
+                    run_cmd = management_command(cmd, run=False)
+                    input_file = source.filename_arg(run_cmd)
                     if paranoid:
                         if raw_input("Continue? [y/n]").lower() != 'y':
                             print "  Skipping...."
+                        if raw_input("Skip permanently? [y/n]").lower() == 'y':
+                            print "  Skipping permanently...."
+                            source.set_last_imported_filename(input_file)
                             continue
-                    run_cmd = run_management_command(cmd)
-                    input_file = source.filename_arg(run_cmd)
+                        else:
+                            continue
+                    run_cmd = management_command(cmd)
                     source.set_last_imported_filename(input_file)
                 if source['id'] != 'prescribing':
                     break
             if 'after_import' in source:
-                print "Running after_import step %s" % source['after_import']
-                if paranoid:
-                    if raw_input("Continue? [y/n]").lower() != 'y':
-                        print "  Skipping...."
-                        continue
-                run_management_command(source['after_import'])
+                for cmd in source['after_import']:
+                    print "Running after_import step %s" % cmd
+                    if paranoid:
+                        if raw_input("Continue? [y/n]").lower() != 'y':
+                            print "  Skipping...."
+                            continue
+                    management_command(cmd)
 
 
-def run_management_command(cmd):
+def management_command(cmd, run=True):
     """Run a Django management command.
 
     Raise an exception if the command is not successful
@@ -459,21 +474,22 @@ def run_management_command(cmd):
     start = datetime.datetime.now()
     cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
-    now = datetime.datetime.now()
-    p = subprocess.Popen(
-        shlex.split(cmd_to_run),
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        cwd=OPENP_FRONTEND_APP_BASEDIR
-    )
-    stdout, stderr = p.communicate()
-    print stdout
-    print "Command completed in %s seconds" % (datetime.datetime.now() - start).seconds
-    if p.returncode:
-        error = "Problem when running %s\n" % cmd
-        error += stdout + "\n"
-        error += stderr
-        raise StandardError(error)
+    if run:
+        now = datetime.datetime.now()
+        p = subprocess.Popen(
+            shlex.split(cmd_to_run),
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            cwd=OPENP_FRONTEND_APP_BASEDIR
+        )
+        stdout, stderr = p.communicate()
+        print stdout
+        print "Command completed in %s seconds" % (datetime.datetime.now() - start).seconds
+        if p.returncode:
+            error = "Problem when running %s\n" % cmd
+            error += stdout + "\n"
+            error += stderr
+            raise StandardError(error)
     return cmd_to_run
 
 
@@ -506,11 +522,11 @@ if __name__ == '__main__':
     elif args.command[0] == 'getdata':
         BigQueryDownloader().download_all()
     elif args.command[0] == 'create_indexes':
-        run_management_command('create_indexes')
+        management_command('create_indexes')
     elif args.command[0] == 'create_matviews':
-        run_management_command('create_matviews')
+        management_command('create_matviews')
     elif args.command[0] == 'refresh_matviews':
-        run_management_command('refresh_matviews')
+        management_command('refresh_matviews')
     elif args.command[0] == 'updatesmoketests':
         SmokeTestHandler().update_smoketests()
     elif args.command[0] == 'runsmoketests':
