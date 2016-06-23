@@ -38,6 +38,16 @@ do this, go to your openprescribing sandbox and run:
     python runner.py create_matviews   # materialized views in DB. Takes ages.
 
 
+Among other things, this will import the latest month of prescribing data. The total set of prescribing data is massive. To avoid locking your computer up for a week, you can generate a random subset from the production database thus:
+
+
+    prescribing=> CREATE TABLE sample_prescription AS SELECT * FROM (SELECT DISTINCT 1 + trunc(random() * 795362276)::integer AS id FROM generate_series(1, 10100) g) r JOIN frontend_prescription USING (id) LIMIT 10000;
+
+
+    $ pg_dump --table=sample_prescription --data-only --column-inserts prescribing --user prescribing > /tmp/data.sql
+
+Then import it to your local database by replacing `sample_prescription` with `frontend_prescription` in the SQL file, and importing it with `psql prescribing < /tmp/data.sql`.
+
 # Setup
 
 Install python dependencies:
