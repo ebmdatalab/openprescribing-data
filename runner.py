@@ -446,12 +446,12 @@ class ImporterRunner(ManifestReader):
                     if paranoid:
                         if raw_input("Continue? [y/n]").lower() != 'y':
                             print "  Skipping...."
-                        if raw_input("Skip permanently? [y/n]").lower() == 'y':
-                            print "  Skipping permanently...."
-                            source.set_last_imported_filename(input_file)
-                            continue
-                        else:
-                            continue
+                            if raw_input("Skip permanently? [y/n]").lower() == 'y':
+                                print "  Skipping permanently...."
+                                source.set_last_imported_filename(input_file)
+                                continue
+                            else:
+                                continue
                     run_cmd = management_command(cmd)
                     source.set_last_imported_filename(input_file)
                 if source['id'] != 'prescribing':
