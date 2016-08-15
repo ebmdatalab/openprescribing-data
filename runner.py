@@ -73,7 +73,6 @@ class Source(UserDict.UserDict):
                         key=lambda x: x['imported_at'])
         return []
 
-
     def last_imported_file(self, file_regex):
         """Return the full path to the most recently imported data for this
         source.
@@ -174,7 +173,7 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        most_recent = self.unimported_files()[-1]
+        most_recent = self.unimported_files(importer)[-1]
         last_imported_file = self.last_imported_file(file_regex)
         if raise_if_imported and last_imported_file:
             last_imported_date = last_imported_file['imported_file'].split("/")[-2]
