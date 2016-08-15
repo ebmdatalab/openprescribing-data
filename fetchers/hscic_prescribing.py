@@ -32,7 +32,7 @@ class Command(BaseCommand):
             date_range = self.sample_date_range()
         else:
             if self.args.start_date:
-                start_date = self.args.start_date
+                start_date = parse(self.args.start_date)
                 end_date = self.most_recent_date()
             elif self.args.most_recent_date:
                 start_date = self.most_recent_date()
