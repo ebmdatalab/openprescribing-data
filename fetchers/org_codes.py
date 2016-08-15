@@ -32,7 +32,7 @@ class Command(BaseCommand):
 
     def handle(self):
         self.url_template = (
-            "http://systems.hscic.gov.uk/"
+            "http://systems.digital.nhs.uk/"
             "data/ods/datadownloads/data-files/%s.zip"
         )
         if self.args.practice:
@@ -54,7 +54,7 @@ class Command(BaseCommand):
 
     def fetch_org_postcodes(self):
         url = (
-            "http://systems.hscic.gov.uk/"
+            "http://systems.digital.nhs.uk/"
             "data/ods/datadownloads/onsdata/zip-files/gridall.zip"
         )
         self.fetch_and_extract_zipped_csv(

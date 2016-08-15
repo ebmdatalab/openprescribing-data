@@ -123,7 +123,7 @@ class Command(BaseCommand):
         ]
 
     def most_recent_date(self):
-        url = ('http://www.hscic.gov.uk'
+        url = ('http://digital.nhs.uk'
                '/searchcatalogue?'
                'q=title%3a%22presentation+level+data%22&sort=Most+recent')
         page = requests.get(url)
