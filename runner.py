@@ -479,7 +479,8 @@ def management_command(cmd, run=True):
             shlex.split(cmd_to_run),
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            cwd=OPENP_FRONTEND_APP_BASEDIR
+            cwd=OPENP_FRONTEND_APP_BASEDIR,
+            env={'PYTHONIOENCODING': 'utf-8'}
         )
         stdout, stderr = p.communicate()
         print stdout
