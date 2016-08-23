@@ -25,6 +25,7 @@
     "requires_captcha": true,
     "tags": ["core_data"],
     "importers": ["import_list_sizes --filename Patient_List_Size.*csv"],
+    "after_import": ["refresh_matviews"],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {
@@ -126,7 +127,6 @@
       "convert_hscic_prescribing --filename T\\d+PDPI.*BNFT\\.CSV",
       "import_hscic_prescribing --filename T\\d+PDPI.*_formatted\\.CSV"
     ],
-    "after_import": ["refresh_matviews"],
     "tags": ["core_data"],
     "depends_on": ["practice_details", "ccg_details", "nhs_postcode_file", "adqs", "bnf_codes"]
   },
