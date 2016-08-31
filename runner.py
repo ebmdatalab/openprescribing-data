@@ -335,8 +335,8 @@ class BigQueryUploader(ManifestReader, CloudHandler):
     def update_prescribing_table(self):
         """Update `prescribing` table from cloud-stored CSV
         """
-        dest_table = 'prescribing_example'
-        months_to_consider = 3
+        dest_table = 'prescribing'
+        months_to_consider = 5
         # build a list of datasets not already dealt with
         raw_datasets = self.list_raw_datasets(
             'ebmdatalab', prefix='hscic/prescribing',
