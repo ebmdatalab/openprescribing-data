@@ -12,6 +12,8 @@ import pipes
 import os
 import errno
 
+from apiclient.errors import HttpError
+
 from utils.cloud import CloudHandler
 
 OPENP_PYTHON = os.environ['OPENP_PYTHON']
@@ -325,7 +327,7 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                 projectId='ebmdatalab',
                 body={'query': query}).execute()
             return int(response['rows'][0]['f'][0]['v'])
-        except errors.HttpError as e:
+        except HttpError as e:
             if e.resp.status == 404:
                 # The table doesn't exist; not an error as we will create it
                 return 0
