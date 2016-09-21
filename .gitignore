@@ -33,3 +33,7 @@ tramp
 Thumbs.db
 Desktop.ini
 Icon?
+
+.venv/
+data/
+credentials.json
