@@ -11,17 +11,15 @@ hours.  To set up a new session:
     cd ~/openprescribing-data/
     source .venv/bin/activate
 
-### General commands
+If your environment is set up (see below), you can do the following to update the monthly data:
 
-When your environment is set up (see below), you can do the following:
-
-    python runner.py getmanual         # manually source some of the data
+    python runner.py getmanual         # manually source some of the data:
     python runner.py getauto           # automatically source the rest
     python runner.py archivedata       # store all most recent data in Google Cloud storage
-    python runner.py bigquery    # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    python runner.py bigquery    # store latest prescribing data to BQ (requires `archivedata` to have been run)
     python runner.py runimporters      # import any previously unimported data
     python runner.py updatesmoketests  # update smoke tests
-    python runner.py runsmoketests     # store latest prescribing data to BQ (requires `uploaddata` to have been run)
+    python runner.py runsmoketests     # store latest prescribing data to BQ (requires `archivedata` to have been run)
     git commit -am "Update smoketests"
 
 To see data in production, you should purge the Cloudflare cache. To

@@ -12,6 +12,8 @@ import pipes
 import os
 import errno
 
+from apiclient.errors import HttpError
+
 from utils.cloud import CloudHandler
 
 OPENP_PYTHON = os.environ['OPENP_PYTHON']
@@ -325,7 +327,7 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                 projectId='ebmdatalab',
                 body={'query': query}).execute()
             return int(response['rows'][0]['f'][0]['v'])
-        except errors.HttpError as e:
+        except HttpError as e:
             if e.resp.status == 404:
                 # The table doesn't exist; not an error as we will create it
                 return 0
@@ -380,8 +382,8 @@ class FetcherRunner(ManifestReader):
                 expected_location = "%s/%s/%s" % (
                     OPENP_DATA_BASEDIR, source['id'], month_and_day)
                 print
-                print "Locate latest data for %s, if available" % source['id']
-                print "Save it at:"
+                print "You should now locate latest data for %s, if available" % source['id']
+                print "You should save it at:"
                 print "    %s" % expected_location
                 if 'index_url' in source and source['index_url']:
                     print "Where to look:"
@@ -400,7 +402,7 @@ class FetcherRunner(ManifestReader):
                 print "The last saved data can be found at:"
                 print "    %s" % \
                     source.most_recent_file(importer, raise_if_imported=False)
-                raw_input("Press return when done")
+                raw_input("Press return when done, or to skip this step")
 
     def run_all_fetchers(self):
         """Run every fetcher defined in the manifest
@@ -473,6 +475,8 @@ def management_command(cmd, run=True):
     start = datetime.datetime.now()
     cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
+    my_env = os.environ.copy()
+    my_env['PYTHONIOENCODING'] = 'utf-8'
     if run:
         now = datetime.datetime.now()
         p = subprocess.Popen(
@@ -480,7 +484,7 @@ def management_command(cmd, run=True):
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             cwd=OPENP_FRONTEND_APP_BASEDIR,
-            env={'PYTHONIOENCODING': 'utf-8'}
+            env=my_env
         )
         stdout, stderr = p.communicate()
         print stdout
