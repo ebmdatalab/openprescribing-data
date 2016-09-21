@@ -380,8 +380,8 @@ class FetcherRunner(ManifestReader):
                 expected_location = "%s/%s/%s" % (
                     OPENP_DATA_BASEDIR, source['id'], month_and_day)
                 print
-                print "Locate latest data for %s, if available" % source['id']
-                print "Save it at:"
+                print "You should now locate latest data for %s, if available" % source['id']
+                print "You should save it at:"
                 print "    %s" % expected_location
                 if 'index_url' in source and source['index_url']:
                     print "Where to look:"
@@ -400,7 +400,7 @@ class FetcherRunner(ManifestReader):
                 print "The last saved data can be found at:"
                 print "    %s" % \
                     source.most_recent_file(importer, raise_if_imported=False)
-                raw_input("Press return when done")
+                raw_input("Press return when done, or to skip this step")
 
     def run_all_fetchers(self):
         """Run every fetcher defined in the manifest
