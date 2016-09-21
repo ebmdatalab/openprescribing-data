@@ -4,3 +4,4 @@ python-dateutil
 networkx
 google-api-python-client
 retrying
+git+https://github.com/GoogleCloudPlatform/google-cloud-python#egg=gcloud

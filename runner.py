@@ -15,6 +15,8 @@ import errno
 from apiclient.errors import HttpError
 
 from utils.cloud import CloudHandler
+from utils import bigquery  # XXX this needs putting in a separate library
+
 
 OPENP_PYTHON = os.environ['OPENP_PYTHON']
 OPENP_DATA_PYTHON = os.environ['OPENP_DATA_PYTHON']
@@ -521,6 +523,8 @@ if __name__ == '__main__':
         ImporterRunner().update_log()
     elif args.command[0] == 'bigquery':
         BigQueryUploader().update_prescribing_table()
+        BigQueryUploader().update_practice_table()
+        BigQueryUploader().update_practicestatistics_table()
     elif args.command[0] == 'archivedata':
         BigQueryUploader().upload_all_to_storage()
     elif args.command[0] == 'getdata':
@@ -535,3 +539,9 @@ if __name__ == '__main__':
         SmokeTestHandler().update_smoketests()
     elif args.command[0] == 'runsmoketests':
         SmokeTestHandler().run_smoketests()
+    elif args.command[0] == 'data_to_bigquery':
+        bigquery.load_data_from_pg(
+            'hscic', 'practices', 'frontend_practice',
+            bigquery.PRACTICE_SCHEMA)
+        bigquery.load_presentation_from_pg()
+        bigquery.load_statistics_from_pg()
