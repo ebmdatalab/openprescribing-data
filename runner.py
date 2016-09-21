@@ -475,6 +475,8 @@ def management_command(cmd, run=True):
     start = datetime.datetime.now()
     cmd_to_run = "%s %s/manage.py %s -v 2" % (
         OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
+    my_env = os.environ.copy()
+    my_env['PYTHONIOENCODING'] = 'utf-8'
     if run:
         now = datetime.datetime.now()
         p = subprocess.Popen(
@@ -482,7 +484,7 @@ def management_command(cmd, run=True):
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             cwd=OPENP_FRONTEND_APP_BASEDIR,
-            env={'PYTHONIOENCODING': 'utf-8'}
+            env=my_env
         )
         stdout, stderr = p.communicate()
         print stdout
