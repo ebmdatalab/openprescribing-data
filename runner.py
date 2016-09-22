@@ -15,7 +15,7 @@ import errno
 from apiclient.errors import HttpError
 
 from utils.cloud import CloudHandler
-from utils import bigquery  # XXX this needs putting in a separate library
+from ebmdatalab import bigquery
 
 
 OPENP_PYTHON = os.environ['OPENP_PYTHON']
