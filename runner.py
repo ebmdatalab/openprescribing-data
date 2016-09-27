@@ -491,12 +491,14 @@ def management_command(cmd, run=True):
         )
         stdout, stderr = p.communicate()
         print stdout
-        print "Command completed in %s seconds" % (datetime.datetime.now() - start).seconds
+        elapsed = (datetime.datetime.now() - start).seconds
         if p.returncode:
-            error = "Problem when running %s\n" % cmd
+            error = "Error after %s seconds when running %s\n" % (elapsed, cmd)
             error += stdout + "\n"
             error += stderr
             raise StandardError(error)
+        else:
+            print "Command completed successfully in %s seconds" % elapsed
     return cmd_to_run
 
 
