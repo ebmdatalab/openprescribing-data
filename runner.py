@@ -84,7 +84,7 @@ class Source(UserDict.UserDict):
         Returns None if no data has been imported.
 
         """
-        imported_files = self.imported_files(file_regex)[-1]
+        imported_files = self.imported_files(file_regex)
         if imported_files:
             return imported_files[-1]
 
@@ -177,14 +177,15 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        most_recent = self.unimported_files(importer)[-1]
+        unimported = self.unimported_files(importer)
+        most_recent = unimported and unimported[-1]
         last_imported_file = self.last_imported_file(file_regex)
         if raise_if_imported and last_imported_file:
             last_imported_date = last_imported_file['imported_file'].split("/")[-2]
             most_recent_date = most_recent.split("/")[-2]
             if last_imported_date >= most_recent_date:
                 raise NothingToDoError()
-        return most_recent
+        return last_imported_file
 
     def importer_cmds_with_latest_data(self):
         """Return a list of importer commands suitable for running.
