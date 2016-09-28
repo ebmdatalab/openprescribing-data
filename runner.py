@@ -236,9 +236,12 @@ class ManifestReader(object):
 class SmokeTestHandler(ManifestReader, CloudHandler):
     def run_smoketests(self):
         prescribing = self.source_by_id('prescribing')
-        last_imported = prescribing.last_imported_file(
-            r'_formatted\.CSV$')['imported_file']
-        date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
+        if 'LAST_IMPORTED' in os.environ:
+            date = os.environ
+        else:
+            last_imported = prescribing.last_imported_file(
+                r'_formatted\.CSV$')['imported_file']
+            date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
         command = "%s smoketests/smoke.py" % OPENP_DATA_PYTHON
         my_env = os.environ.copy()
         my_env['LAST_IMPORTED'] = date
