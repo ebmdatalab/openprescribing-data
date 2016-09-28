@@ -44,7 +44,7 @@ class SmokeTestBase(unittest.TestCase):
         for row in reader:
             all_rows.append(row)
         self.assertEqual(len(all_rows), expected_total)
-        with open("%s.json" % test, 'rb') as f:
+        with open("smoketests/%s.json" % test, 'rb') as f:
             expected = json.load(f)
             for i, row in enumerate(all_rows):
                 self.assertEqual(

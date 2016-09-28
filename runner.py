@@ -272,7 +272,7 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
                     cost.append(r['actual_cost'])
                     items.append(r['items'])
                 print "Updating test expectations for %s" % test_name
-                with open("%s.json" % test_name, 'wb') as f:
+                with open("smoketests/%s.json" % test_name, 'wb') as f:
                     obj = {'cost': cost,
                            'items': items,
                            'quantity': quantity}
