@@ -30,7 +30,7 @@ class SmokeTestBase(unittest.TestCase):
 
     def _months_since_data_started(self):
         now = self._now_date()
-        return (now.year - 2010) * 12 + (now.month - 8)
+        return (now.year - 2010) * 12 + (now.month - 8) + 1
 
     def _months_since_ccg_creation(self):
         now = self._now_date()
