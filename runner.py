@@ -245,6 +245,16 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
         print "Running %s with LAST_IMPORTED=%s" % (command, date)
         subprocess.check_call(shlex.split(command), env=my_env)
 
+    def rows_to_dict(self, bigquery_result):
+        fields = bigquery_result['schema']['fields']
+        for row in bigquery_result['rows']:
+            dict_row = {}
+            for i, item in enumerate(row['f']):
+                value = item['v']
+                key = fields[i]['name']
+                dict_row[key] = value
+            yield dict_row
+
     def update_smoketests(self):
         for sql_file in glob.glob('smoketests/*sql'):
             test_name = os.path.splitext(
