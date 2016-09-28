@@ -534,10 +534,6 @@ if __name__ == '__main__':
         ImporterRunner().run_all_importers(paranoid=args.paranoid)
     elif args.command[0] == 'updatelog':
         ImporterRunner().update_log()
-    elif args.command[0] == 'bigquery':
-        BigQueryUploader().update_prescribing_table()
-        BigQueryUploader().update_practice_table()
-        BigQueryUploader().update_practicestatistics_table()
     elif args.command[0] == 'archivedata':
         BigQueryUploader().upload_all_to_storage()
     elif args.command[0] == 'getdata':
@@ -552,7 +548,8 @@ if __name__ == '__main__':
         SmokeTestHandler().update_smoketests()
     elif args.command[0] == 'runsmoketests':
         SmokeTestHandler().run_smoketests()
-    elif args.command[0] == 'data_to_bigquery':
+    elif args.command[0] == 'bigquery':
+        BigQueryUploader().update_prescribing_table()
         bigquery.load_data_from_pg(
             'hscic', 'practices', 'frontend_practice',
             bigquery.PRACTICE_SCHEMA)
