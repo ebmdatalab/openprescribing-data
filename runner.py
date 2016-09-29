@@ -237,7 +237,7 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
     def run_smoketests(self):
         prescribing = self.source_by_id('prescribing')
         if 'LAST_IMPORTED' in os.environ:
-            date = os.environ
+            date = os.environ['LAST_IMPORTED']
         else:
             last_imported = prescribing.last_imported_file(
                 r'_formatted\.CSV$')['imported_file']
