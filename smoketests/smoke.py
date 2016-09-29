@@ -34,7 +34,7 @@ class SmokeTestBase(unittest.TestCase):
 
     def _months_since_ccg_creation(self):
         now = self._now_date()
-        return (now.year - 2013) * 12 + (now.month - 4)
+        return (now.year - 2013) * 12 + (now.month - 4) + 1
 
     def _run_tests(self, test, url, expected_total):
         r = requests.get(url)
