@@ -24,8 +24,8 @@
     "notes": "The data doesn't contain date stamps, so we rely on the correct datestamping of the containing folder to verify the validity of the data. For example, if a CSV is valid for Jan - March 2016, then it should be placed in a folder like `2016_03/Patient_List_Size-whatever.csv`",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": ["import_list_sizes --filename Patient_List_Size.*csv"],
-    "after_import": ["refresh_matviews"],
+    "importers": [],
+    "after_import": [],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {
@@ -128,6 +128,7 @@
       "import_hscic_prescribing --filename T\\d+PDPI.*_formatted\\.CSV"
     ],
     "tags": ["core_data"],
+    "after_import": ["refresh_matviews"],
     "depends_on": ["practice_details", "ccg_details", "nhs_postcode_file", "adqs", "bnf_codes"]
   },
   {
@@ -176,8 +177,9 @@
     "index_url": "http://systems.hscic.gov.uk/data/ods/datadownloads/gppractice/index_html",
     "fetcher": "org_codes.py --practice",
     "tags": ["core_data"],
-    "importers": ["import_practices --epraccur epraccur.csv"],
-    "depends_on": ["ccg_details"]
+    "importers": ["import_practices --epraccur epraccur.csv",
+                  "import_list_sizes --filename Patient_List_Size.*csv"],
+    "depends_on": ["ccg_details", "patient_list_weightings"]
   },
   {
     "id": "patient_list_weightings",
