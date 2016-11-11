@@ -188,7 +188,7 @@
     "publication_lag": "",
     "index_url": "http://www.hscic.gov.uk/prescribing/measures",
     "tags": ["core_data"],
-    "notes": "The importer actually dumps valuess to JSON, rather than importing. This json is then saved to the PracticeStatistics model whenever tha model is saved, which in practice is whenever the `import_list_sizes` importer is run.",
+    "notes": "The importer actually dumps values to JSON, rather than importing. This json is then saved to the PracticeStatistics model whenever tha model is saved, which in practice is whenever the `import_list_sizes` importer is run.",
     "importers": ["calculate_star_pu_weights --filename prescribing_units.xlsx"]
   }
 ]
