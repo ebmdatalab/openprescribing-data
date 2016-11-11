@@ -40,7 +40,7 @@
     "notes": "",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": ["import_measures --month_from_prescribing_filename T\\d+PDPI.*_formatted\\.CSV"],
+    "importers": ["import_measures --definitions_only", "import_measures --month_from_prescribing_filename T\\d+PDPI.*_formatted\\.CSV"],
     "depends_on": ["patient_list_size"]
   },
   {
