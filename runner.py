@@ -195,13 +195,18 @@ class Source(UserDict.UserDict):
         data, and omits commands which have already been run for the
         most recent unimported data.
 
+        Commands prefixed `runner:` are returned as-is.
+
         """
         cmds = []
         for importer in self.get('importers', []):
-            for latest_data in self.unimported_files(importer):
-                filename_regex = self.filename_arg(importer)
-                cmds.append(importer.replace(
-                    filename_regex, pipes.quote(latest_data)))
+            if importer.startswith('runner:'):
+                cmds.append(importer)
+            else:
+                for latest_data in self.unimported_files(importer):
+                    filename_regex = self.filename_arg(importer)
+                    cmds.append(importer.replace(
+                        filename_regex, pipes.quote(latest_data)))
         return cmds
 
 
@@ -456,21 +461,25 @@ class ImporterRunner(ManifestReader):
             # pre-import step
             for attempt in range(2):
                 for cmd in source.importer_cmds_with_latest_data():
-                    print "Importing %s with command: `%s`" % (
-                        source['id'], cmd)
-                    run_cmd = management_command(cmd, run=False)
-                    input_file = source.filename_arg(run_cmd)
-                    if paranoid:
-                        if raw_input("Continue? [y/n]").lower() != 'y':
-                            print "  Skipping...."
-                            if raw_input("Skip permanently? [y/n]").lower() == 'y':
-                                print "  Skipping permanently...."
-                                source.set_last_imported_filename(input_file)
-                                continue
-                            else:
-                                continue
-                    run_cmd = management_command(cmd)
-                    source.set_last_imported_filename(input_file)
+                    if cmd.startswith('runner:'):
+                        cmd = cmd[len('runner:'):]
+                        globals()[cmd]()  # runs the named method
+                    else:
+                        print "Importing %s with command: `%s`" % (
+                            source['id'], cmd)
+                        run_cmd = management_command(cmd, run=False)
+                        input_file = source.filename_arg(run_cmd)
+                        if paranoid:
+                            if raw_input("Continue? [y/n]").lower() != 'y':
+                                print "  Skipping...."
+                                if raw_input("Skip permanently? [y/n]").lower() == 'y':
+                                    print "  Skipping permanently...."
+                                    source.set_last_imported_filename(input_file)
+                                    continue
+                                else:
+                                    continue
+                        run_cmd = management_command(cmd)
+                        source.set_last_imported_filename(input_file)
                 if source['id'] != 'prescribing':
                     break
             if 'after_import' in source:
@@ -515,6 +524,15 @@ def management_command(cmd, run=True):
     return cmd_to_run
 
 
+def bigquery_upload():
+    BigQueryUploader().update_prescribing_table()
+    bigquery.load_data_from_pg(
+        'hscic', 'practices', 'frontend_practice',
+        bigquery.PRACTICE_SCHEMA)
+    bigquery.load_presentation_from_pg()
+    bigquery.load_statistics_from_pg()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
@@ -552,9 +570,4 @@ if __name__ == '__main__':
     elif args.command[0] == 'runsmoketests':
         SmokeTestHandler().run_smoketests()
     elif args.command[0] == 'bigquery':
-        BigQueryUploader().update_prescribing_table()
-        bigquery.load_data_from_pg(
-            'hscic', 'practices', 'frontend_practice',
-            bigquery.PRACTICE_SCHEMA)
-        bigquery.load_presentation_from_pg()
-        bigquery.load_statistics_from_pg()
+        bigquery_upload()

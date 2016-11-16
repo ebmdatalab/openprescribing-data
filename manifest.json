@@ -40,7 +40,7 @@
     "notes": "",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": ["import_measures --definitions_only", "import_measures --month_from_prescribing_filename T\\d+PDPI.*_formatted\\.CSV"],
+    "importers": ["runner:bigquery_upload", "import_measures --definitions_only", "import_measures --start_date 2010-08-01"],
     "depends_on": ["patient_list_size"]
   },
   {
