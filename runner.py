@@ -53,6 +53,10 @@ class FileNotFoundError(StandardError):
     pass
 
 
+class LogError(StandardError):
+    pass
+
+
 class Source(UserDict.UserDict):
     """Adds business logic to a row of data in `manifest.json`
     """
@@ -68,6 +72,9 @@ class Source(UserDict.UserDict):
             log = json.load(f)
             dates = log.get(self['id'], [])
             if dates:
+                if any(not x['imported_file'] for x in dates):
+                    raise LogError("No filename found for %s in %s" % (
+                        self['id'], dates))
                 matches = filter(
                     lambda x: re.findall(file_regex, x['imported_file']),
                     dates)
