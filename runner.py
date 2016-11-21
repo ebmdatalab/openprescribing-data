@@ -531,6 +531,7 @@ def bigquery_upload():
         bigquery.PRACTICE_SCHEMA)
     bigquery.load_presentation_from_pg()
     bigquery.load_statistics_from_pg()
+    bigquery.load_ccgs_from_pg()
 
 
 if __name__ == '__main__':
