@@ -461,6 +461,19 @@ class ImporterRunner(ManifestReader):
         On success, logs each one as imported
         """
         for source in self.sources_ordered_by_dependency():
+            if 'before_import' in source:
+                for cmd in source['before_import']:
+                    print "Running before_import step %s" % cmd
+                    if paranoid:
+                        if raw_input("Continue? [y/n]").lower() != 'y':
+                            print "  Skipping...."
+                            continue
+                    if cmd.startswith('runner:'):
+                        cmd = cmd[len('runner:'):]
+                        globals()[cmd]()  # runs the named method
+                    else:
+                        management_command(cmd)
+
             # XXX special case prescribing source to run twice. This
             # is because the first time, the formatted version of the
             # file has not been generated. This needs to be fixed to
@@ -468,25 +481,21 @@ class ImporterRunner(ManifestReader):
             # pre-import step
             for attempt in range(2):
                 for cmd in source.importer_cmds_with_latest_data():
-                    if cmd.startswith('runner:'):
-                        cmd = cmd[len('runner:'):]
-                        globals()[cmd]()  # runs the named method
-                    else:
-                        print "Importing %s with command: `%s`" % (
-                            source['id'], cmd)
-                        run_cmd = management_command(cmd, run=False)
-                        input_file = source.filename_arg(run_cmd)
-                        if paranoid:
-                            if raw_input("Continue? [y/n]").lower() != 'y':
-                                print "  Skipping...."
-                                if raw_input("Skip permanently? [y/n]").lower() == 'y':
-                                    print "  Skipping permanently...."
-                                    source.set_last_imported_filename(input_file)
-                                    continue
-                                else:
-                                    continue
-                        run_cmd = management_command(cmd)
-                        source.set_last_imported_filename(input_file)
+                    print "Importing %s with command: `%s`" % (
+                        source['id'], cmd)
+                    run_cmd = management_command(cmd, run=False)
+                    input_file = source.filename_arg(run_cmd)
+                    if paranoid:
+                        if raw_input("Continue? [y/n]").lower() != 'y':
+                            print "  Skipping...."
+                            if raw_input("Skip permanently? [y/n]").lower() == 'y':
+                                print "  Skipping permanently...."
+                                source.set_last_imported_filename(input_file)
+                                continue
+                            else:
+                                continue
+                    run_cmd = management_command(cmd)
+                    source.set_last_imported_filename(input_file)
                 if source['id'] != 'prescribing':
                     break
             if 'after_import' in source:

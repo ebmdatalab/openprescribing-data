@@ -40,7 +40,8 @@
     "notes": "",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": ["runner:bigquery_upload", "import_measures --definitions_only", "import_measures --start_date 2010-08-01"],
+    "before_import": ["runner:bigquery_upload", "import_measures --definitions_only", "import_measures --start_date 2010-08-01"],
+    "importers":  [],
     "depends_on": ["patient_list_size"]
   },
   {
