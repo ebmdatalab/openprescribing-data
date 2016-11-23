@@ -24,8 +24,9 @@
     "notes": "The data doesn't contain date stamps, so we rely on the correct datestamping of the containing folder to verify the validity of the data. For example, if a CSV is valid for Jan - March 2016, then it should be placed in a folder like `2016_03/Patient_List_Size-whatever.csv`",
     "requires_captcha": true,
     "tags": ["core_data"],
-    "importers": [],
-    "after_import": ["import_list_sizes --filename Patient_List_Size.*csv"],
+    "always_import": true,
+    "importers": ["import_list_sizes --filename Patient_List_Size.*csv"],
+    "after_import": [],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {

@@ -165,10 +165,13 @@ class Source(UserDict.UserDict):
             for x in self.imported_files(file_regex)
         ]
         try:
+            selected = []
             all_files = self.files_by_date(importer)
-            return filter(
-                lambda x: x.split('/')[-2] not in imported_file_dates,
-                all_files)
+            for f in all_files:
+                if (self.data.get("always_import", False) or
+                        f.split('/')[-2] not in imported_file_dates):
+                    selected.append(f)
+            return all_files
         except FileNotFoundError:
             return []
 
