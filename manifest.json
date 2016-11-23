@@ -15,7 +15,7 @@
   },
   {
     "id": "patient_list_size",
-    "title": "Patient list sizes of practice broken down by age decile and gender",
+    "title": "Patient list sizes of practice broken down by ge decile and gender",
     "description": "",
     "publisher": "NHS Business Services Authority",
     "publication_schedule": "quarterly",
@@ -25,7 +25,7 @@
     "requires_captcha": true,
     "tags": ["core_data"],
     "importers": [],
-    "after_import": [],
+    "after_import": ["import_list_sizes --filename Patient_List_Size.*csv"],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
   {
@@ -38,11 +38,44 @@
     "publication_lag": "",
     "index_url": "",
     "notes": "",
-    "requires_captcha": true,
+    "requires_captcha": false,
     "tags": ["core_data"],
-    "before_import": ["runner:bigquery_upload", "import_measures --definitions_only", "import_measures --start_date 2010-08-01"],
+    "before_import": ["import_measures --definitions_only",
+                      "import_measures --start_date 2010-08-01"],
     "importers":  [],
-    "depends_on": ["patient_list_size"]
+    "depends_on": ["upload_to_bigquery"]
+  },
+  {
+    "id": "refresh_views",
+    "data_dir": "",
+    "title": "Non-data-dependent task to update views",
+    "description": "",
+    "publisher": "",
+    "publication_schedule": "",
+    "publication_lag": "",
+    "index_url": "",
+    "notes": "",
+    "requires_captcha": false,
+    "tags": ["core_data"],
+    "before_import": ["refresh_views"],
+    "importers":  [],
+    "depends_on": ["upload_to_bigquery"]
+  },
+  {
+    "id": "upload_to_bigquery",
+    "data_dir": "",
+    "title": "Non-data-dependent task to send local data to bigquery",
+    "description": "",
+    "publisher": "",
+    "publication_schedule": "",
+    "publication_lag": "",
+    "index_url": "",
+    "notes": "",
+    "requires_captcha": false,
+    "tags": ["core_data"],
+    "before_import": ["runner:bigquery_upload"],
+    "importers":  [],
+    "depends_on": ["patient_list_size", "prescribing", "practice_details", "ccg_details"]
   },
   {
     "id": "bnf_codes",
@@ -129,7 +162,6 @@
       "import_hscic_prescribing --filename T\\d+PDPI.*_formatted\\.CSV"
     ],
     "tags": ["core_data"],
-    "after_import": ["refresh_matviews"],
     "depends_on": ["practice_details", "ccg_details", "nhs_postcode_file", "adqs", "bnf_codes"]
   },
   {
@@ -178,8 +210,7 @@
     "index_url": "http://systems.hscic.gov.uk/data/ods/datadownloads/gppractice/index_html",
     "fetcher": "org_codes.py --practice",
     "tags": ["core_data"],
-    "importers": ["import_practices --epraccur epraccur.csv",
-                  "import_list_sizes --filename Patient_List_Size.*csv"],
+    "importers": ["import_practices --epraccur epraccur.csv"],
     "depends_on": ["ccg_details", "patient_list_weightings"]
   },
   {

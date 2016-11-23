@@ -245,6 +245,7 @@ class ManifestReader(object):
             self.sources,
             key=lambda s: resolved_order.index(s['id']))
 
+
 class SmokeTestHandler(ManifestReader, CloudHandler):
     def run_smoketests(self):
         prescribing = self.source_by_id('prescribing')
@@ -558,7 +559,7 @@ if __name__ == '__main__':
         type=str,
         choices=['getmanual', 'getauto', 'updatelog',
                  'runimporters', 'bigquery', 'create_indexes',
-                 'create_matviews', 'refresh_matviews',
+                 'create_matviews', 'refresh_matviews','showorder',
                  'archivedata', 'smoketests', 'updatesmoketests', 'runsmoketests', 'getdata']
     )
     parser.add_argument('--bigquery-file')
@@ -588,3 +589,11 @@ if __name__ == '__main__':
         SmokeTestHandler().run_smoketests()
     elif args.command[0] == 'bigquery':
         bigquery_upload()
+    elif args.command[0] == 'showorder':
+        print "Will run in the following order:"
+        for s in ManifestReader().sources_ordered_by_dependency():
+            print s['id']
+            print "Before import:", s.get('before_import', '')
+            print "Import:", s.get('importers', '')
+            print "After import:", s.get('after_import', '')
+            print
