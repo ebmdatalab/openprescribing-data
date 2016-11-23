@@ -13,6 +13,8 @@ hours.  To set up a new session:
 
 If your environment is set up (see below), you can do the following to update the monthly data:
 
+    cp log.json log.json-2016-06-01    # backup the log file
+
     python runner.py getmanual         # manually source some of the data:
     python runner.py getauto           # automatically source the rest
     python runner.py archivedata       # store all most recent data in Google Cloud storage
