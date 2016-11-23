@@ -56,10 +56,21 @@ class Command(BaseCommand):
 
     def get_zipped_version(self, year, month, target_path):
         target_file = "%s/%s_%s_hscic.zip" % (target_path, year, month)
-        name = "%s_%s_%s" % (year, str(month).zfill(2),
-                             calendar.month_name[month])
-        url = "%s/%s.exe" % (name, name)
-        self.wget_and_return(url, target_file)
+        month_name = calendar.month_name[month]
+        poss_month_names = [month_name, month_name.lower(),
+                            month_name[:3], month_name[:3].lower()]
+        for possibility in poss_month_names:
+            path = "%s_%s_%s" % (year, str(month).zfill(2),
+                                 month_name)
+            name = "%s_%s_%s" % (year, str(month).zfill(2),
+                                 possibility)
+            url = "%s/%s.exe" % (path, name)
+            try:
+                self.wget_and_return(url, target_file)
+                break
+            except subprocess.CalledProcessError:
+                print "Nothing found at ", url
+                next
         z = ZipFile(target_file)
         if len(z.namelist()) == 3:
             z.extractall("%s/%s_%s/" % (PREFIX, year, str(month).zfill(2)))
@@ -84,10 +95,8 @@ class Command(BaseCommand):
                     url = "%s/%s" % (date_part_with_case, name)
                     try:
                         self.wget_and_return(url, target_file)
-                        return
                     except subprocess.CalledProcessError:
-                        pass
-        raise StandardError("Couldn't fetch file at %s" % target_file)
+                        print "Couldn't get url %s" % url
 
     def wget_and_return(self, url, target_file):
         '''
