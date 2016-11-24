@@ -58,7 +58,7 @@
     "notes": "",
     "requires_captcha": false,
     "tags": ["core_data"],
-    "before_import": ["refresh_views"],
+    "before_import": ["create_views"],
     "importers":  [],
     "depends_on": ["upload_to_bigquery"]
   },
