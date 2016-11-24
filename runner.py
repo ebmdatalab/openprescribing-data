@@ -13,6 +13,7 @@ import os
 import errno
 
 from apiclient.errors import HttpError
+from retrying import retry
 
 from utils.cloud import CloudHandler
 from ebmdatalab import bigquery
@@ -39,6 +40,10 @@ def mkdir_p(path):
             pass
         else:
             raise
+
+
+def retry_if_key_error(ex):
+    return isinstance(ex, KeyError)
 
 
 class NothingToDoError(StandardError):
@@ -340,11 +345,15 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                 except FileNotFoundError:
                     pass
 
+
+    @retry(retry_on_exception=retry_if_key_error, stop_max_attempt_number=3)
     def _count_imported_data_for_filename(self, filename,
                                           table_name='prescribing'):
         """Given a CSV filename for prescribing data, query how many rows have
         already been ingested for that date in the main `prescribing`
         table.
+
+        Retries because bigquery is unreliable.
 
         """
         match = re.match(r'.*T(\d{6})PDPI', filename)
