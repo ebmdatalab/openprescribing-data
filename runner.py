@@ -171,7 +171,7 @@ class Source(UserDict.UserDict):
                 if (self.data.get("always_import", False) or
                         f.split('/')[-2] not in imported_file_dates):
                     selected.append(f)
-            return all_files
+            return selected
         except FileNotFoundError:
             return []
 

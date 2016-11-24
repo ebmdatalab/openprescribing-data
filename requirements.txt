@@ -4,4 +4,4 @@ python-dateutil
 networkx
 google-api-python-client
 retrying
-ebmdatalab-python==0.0.14
+ebmdatalab-python==0.0.15
