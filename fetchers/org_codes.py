@@ -51,10 +51,7 @@ class Command(BaseCommand):
             "data/practice_details")
 
     def fetch_org_postcodes(self):
-        url = (
-            "http://systems.digital.nhs.uk/"
-            "data/ods/datadownloads/onsdata/zip-files/gridall.zip"
-        )
+        url = "https://digital.nhs.uk/media/636/Gridall/zip/gridall"
         self.fetch_and_extract_zipped_csv(
             url,
             'gridall.csv',
