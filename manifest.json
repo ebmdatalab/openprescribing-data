@@ -42,7 +42,7 @@
     "requires_captcha": false,
     "tags": ["core_data"],
     "before_import": ["import_measures --definitions_only",
-                      "import_measures --start_date 2010-08-01"],
+                      "import_measures"],
     "importers":  [],
     "depends_on": ["upload_to_bigquery"]
   },
