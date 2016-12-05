@@ -15,6 +15,8 @@ multiple chemicals, one section, multiple sections, all
 The expected numbers are generated from smoke.sh
 '''
 
+PRESCRIBING_DATA_MONTHS = 5 * 12
+
 
 class SmokeTestBase(unittest.TestCase):
 
@@ -82,7 +84,7 @@ class TestSmokeTestSpendingByOnePractice(SmokeTestBase):
         url += 'code=0703021Q0BBAAAA&org=A81015'  # Cerazette 75mcg.
         self._run_tests('presentation_by_one_practice',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
     def test_chemical_by_one_practice(self):
         url = '%s/api/1.0/spending_by_practice/?' % self.DOMAIN
