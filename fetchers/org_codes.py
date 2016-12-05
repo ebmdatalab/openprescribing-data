@@ -31,10 +31,6 @@ class Command(BaseCommand):
         parser.add_argument('--postcode', action='store_true')
 
     def handle(self):
-        self.url_template = (
-            "http://systems.digital.nhs.uk/"
-            "data/ods/datadownloads/data-files/%s.zip"
-        )
         if self.args.practice:
             self.fetch_practice_details()
         if self.args.ccg:
@@ -44,12 +40,14 @@ class Command(BaseCommand):
 
     def fetch_ccg_details(self):
         self.fetch_and_extract_zipped_csv(
-            self.url_template % 'eccg',
+            "https://digital.nhs.uk/media/354/eccg/zip/eccg1",
+            "eccg.csv",
             "data/ccg_details")
 
     def fetch_practice_details(self):
         self.fetch_and_extract_zipped_csv(
-            self.url_template % 'epraccur',
+            "https://digital.nhs.uk/media/372/epraccur/zip/epraccur",
+            "epraccur.csv",
             "data/practice_details")
 
     def fetch_org_postcodes(self):
@@ -59,9 +57,10 @@ class Command(BaseCommand):
         )
         self.fetch_and_extract_zipped_csv(
             url,
+            'gridall.csv',
             'data/nhs_postcode_file')
 
-    def fetch_and_extract_zipped_csv(self, url, dest):
+    def fetch_and_extract_zipped_csv(self, url, expected_filename, dest):
         """Grab a zipfile from a url, and extract a CSV.
 
         Save it to a datestamped folder if it's different from the
@@ -69,8 +68,6 @@ class Command(BaseCommand):
 
         """
         t = tempfile.mkdtemp()[1]
-        name = url.split('/')[-1].split('.')[0]
-        expected_filename = "%s.csv" % name
         f = StringIO()
         f.write(requests.get(url).content)
         f.flush()
@@ -78,7 +75,8 @@ class Command(BaseCommand):
         zipfile.extract(expected_filename, t)
         extracted_file_path = "%s/%s" % (t, expected_filename)
         most_recent = self.most_recent_file(dest)
-        changed = not filecmp.cmp(most_recent, extracted_file_path, shallow=True)
+        changed = not filecmp.cmp(
+            most_recent, extracted_file_path, shallow=True)
         if changed:
             new_folder = datetime.datetime.today().strftime("%Y_%m")
             new_path = "%s/%s/" % (dest, new_folder)
