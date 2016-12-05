@@ -527,8 +527,9 @@ def management_command(cmd, run=True):
     Raise an exception if the command is not successful
     """
     start = datetime.datetime.now()
-    cmd_to_run = "%s %s/manage.py %s -v 2" % (
-        OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd)
+    cmd_to_run = ("%s %s/manage.py %s -v 2 "
+                  "--settings=openprescribing.settings.production" % (
+                      OPENP_PYTHON, OPENP_FRONTEND_APP_BASEDIR, cmd))
     my_env = os.environ.copy()
     my_env['PYTHONIOENCODING'] = 'utf-8'
     if run:
