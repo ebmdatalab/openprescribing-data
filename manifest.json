@@ -29,7 +29,7 @@
     "after_import": [],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
-  {
+  { 
     "id": "measures",
     "data_dir": "prescribing",
     "title": "Calculate common measures",
