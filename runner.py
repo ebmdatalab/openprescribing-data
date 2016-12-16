@@ -287,7 +287,9 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
                 query = f.read()
                 response = self.bigquery.jobs().query(
                     projectId='ebmdatalab',
-                    body={'useLegacySql': False, 'timeoutMs': 20000, 'query': query}).execute()
+                    body={'useLegacySql': False,
+                          'timeoutMs': 20000,
+                          'query': query}).execute()
                 quantity = []
                 cost = []
                 items = []
@@ -374,6 +376,16 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                 return 0
             else:
                 raise
+
+    def update_bnf_table(self):
+        """Update `bnf` table from cloud-stored CSV
+        """
+        dataset = self.list_raw_datasets(
+            'ebmdatalab', prefix='hscic/bnf_codes',
+            name_regex=r'\.csv')[-1]
+        uri = "gs://ebmdatalab/%s" % dataset
+        print "Loading data from %s..." % uri
+        self.load(uri, table_name="bnf", schema='bnf.json')
 
     def update_prescribing_table(self):
         """Update `prescribing` table from cloud-stored CSV
@@ -556,6 +568,7 @@ def management_command(cmd, run=True):
 
 def bigquery_upload():
     BigQueryUploader().update_prescribing_table()
+    BigQueryUploader().update_bnf_table()
     bigquery.load_data_from_pg(
         'hscic', 'practices', 'frontend_practice',
         bigquery.PRACTICE_SCHEMA)

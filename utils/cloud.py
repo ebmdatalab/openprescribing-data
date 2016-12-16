@@ -64,14 +64,15 @@ class CloudHandler(object):
         sys.stdout.write('\r' + s)
         sys.stdout.flush()
 
-    def _load_payload(self, uri, table_id=None, mode=None):
+    def _load_payload(
+            self, uri, table_id=None, mode=None, schema='prescribing.json'):
         if mode == 'replace':
             mode = 'WRITE_TRUNCATE'
         elif mode == 'append':
             mode = 'WRITE_APPEND'
         else:
             raise StandardError("invalid mode")
-        with open('schemas/prescribing.json', 'rb') as f:
+        with open("schemas/%s" % schema, 'rb') as f:
             schema = json.load(f)
             payload = {
                 "configuration": {
@@ -143,7 +144,7 @@ class CloudHandler(object):
             if response['status']['state'] == 'DONE':
                 if 'errors' in response['status']:
                     raise StandardError(
-                        json.dumps(response['status']['errors'], indent=2))
+                        json.dumps(response, indent=2))
                 else:
                     print "DONE!"
                     return
@@ -155,10 +156,13 @@ class CloudHandler(object):
                                       mode=mode)
         self._run_and_wait(payload)
 
-    def load(self, uri, table_name='prescribing_temp'):
+    def load(self,
+             uri,
+             table_name='prescribing_temp',
+             schema='prescribing.json'):
         assert table_name
         payload = self._load_payload(
-            uri, table_id=table_name, mode='replace')
+            uri, table_id=table_name, mode='replace', schema=schema)
         self._run_and_wait(payload)
 
     def dataset_exists(self, bucket, name):
