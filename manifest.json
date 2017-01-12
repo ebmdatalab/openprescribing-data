@@ -154,7 +154,7 @@
     "publisher": "Health & Social Care Information Centre",
     "publication_schedule": "end of each month",
     "publication_lag": "80 - 100 days",
-    "index_url": "http://www.hscic.gov.uk/article/2021/Website-Search?q=presentation+level+data",
+    "index_url": "http://content.digital.nhs.uk/article/2021/Website-Search?q=presentation+level+data&go=Go&area=both",
     "fetcher": "hscic_prescribing.py --most_recent_date",
     "importers": [
       "import_hscic_chemicals --chem_file T\\d+CHEM.*\\.CSV",
