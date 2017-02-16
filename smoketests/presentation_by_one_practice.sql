@@ -8,6 +8,7 @@ FROM
 WHERE
   bnf_code='0703021Q0BBAAAA'
   AND practice='A81015'
+  AND {{ date_condition }}
 GROUP BY
   month
 ORDER BY

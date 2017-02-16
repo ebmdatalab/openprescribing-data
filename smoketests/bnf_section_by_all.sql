@@ -7,6 +7,7 @@
     `hscic.prescribing`
   WHERE
     bnf_code LIKE '0702%'
+    AND {{ date_condition }}
   GROUP BY
     month
   ORDER BY

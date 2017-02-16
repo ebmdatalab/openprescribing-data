@@ -255,7 +255,7 @@ class ManifestReader(object):
 
 
 class SmokeTestHandler(ManifestReader, CloudHandler):
-    def run_smoketests(self):
+    def last_imported(self):
         prescribing = self.source_by_id('prescribing')
         if 'LAST_IMPORTED' in os.environ:
             date = os.environ['LAST_IMPORTED']
@@ -263,9 +263,13 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
             last_imported = prescribing.last_imported_file(
                 r'_formatted\.CSV$')['imported_file']
             date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
-        command = "%s smoketests/smoke.py" % OPENP_DATA_PYTHON
+        return date
+
+    def run_smoketests(self):
+        date = self.last_imported()
         my_env = os.environ.copy()
         my_env['LAST_IMPORTED'] = date
+        command = "%s smoketests/smoke.py" % OPENP_DATA_PYTHON
         print "Running %s with LAST_IMPORTED=%s" % (command, date)
         subprocess.check_call(shlex.split(command), env=my_env)
 
@@ -280,11 +284,17 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
             yield dict_row
 
     def update_smoketests(self):
+        prescribing_date = "-".join(self.last_imported().split('_')) + '-01'
+        date_condition = ('month >= TIMESTAMP(DATE_SUB(DATE "%s", '
+                          'INTERVAL 5 YEAR))' % prescribing_date)
+
         for sql_file in glob.glob('smoketests/*sql'):
             test_name = os.path.splitext(
                 os.path.basename(sql_file))[0]
             with open(sql_file, 'rb') as f:
-                query = f.read()
+                query = f.read().replace(
+                    '{{ date_condition }}', date_condition)
+                print query
                 response = self.bigquery.jobs().query(
                     projectId='ebmdatalab',
                     body={'useLegacySql': False,
@@ -325,7 +335,7 @@ class BigQueryDownloader(ManifestReader, CloudHandler):
                     most_recent.replace('hscic/', ''))
                 target_dir = os.path.split(target_file)[0]
                 if os.path.exists(target_file):
-                    print "%s exists; skipping" % target_file
+                    continue
                 else:
                     print "Downloading %s to %s" % (most_recent, target_file)
                     mkdir_p(target_dir)
@@ -342,6 +352,7 @@ class BigQueryUploader(ManifestReader, CloudHandler):
                         name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
                         if self.dataset_exists(bucket, name):
                             print "Skipping %s, already uploaded" % name
+                            continue
                         print "Uploading %s to %s" % (path, name)
                         self.upload(path, bucket, name)
                 except FileNotFoundError:

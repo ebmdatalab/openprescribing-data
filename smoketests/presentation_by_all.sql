@@ -7,5 +7,6 @@ FROM
   `hscic.prescribing`
 WHERE
   bnf_code='0501013B0AAAAAA'
+  AND {{ date_condition }}
 GROUP BY month
 ORDER BY month ASC

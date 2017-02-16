@@ -8,6 +8,7 @@ FROM
 WHERE
   (bnf_code='0403030E0AAAAAA')
   AND pct='10Q'
+  AND {{ date_condition }}
 GROUP BY
   month
 ORDER BY

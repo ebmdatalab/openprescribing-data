@@ -8,6 +8,8 @@ FROM
 WHERE
   (bnf_code LIKE '0801%')
   AND pct='10Q'
+  AND {{ date_condition }}
+
 GROUP BY
   month
 ORDER BY

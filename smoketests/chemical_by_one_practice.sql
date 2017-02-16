@@ -8,6 +8,7 @@ FROM
 WHERE
   bnf_code LIKE '0212000AA%'
   AND practice='A81015'
+  AND {{ date_condition }}
 GROUP BY
   month
 ORDER BY
