@@ -15,7 +15,7 @@
   },
   {
     "id": "patient_list_size",
-    "title": "Patient list sizes of practice broken down by ge decile and gender",
+    "title": "Patient list sizes of practice broken down by age decile and gender",
     "description": "",
     "publisher": "NHS Business Services Authority",
     "publication_schedule": "quarterly",
@@ -29,7 +29,7 @@
     "after_import": [],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
-  {
+  { 
     "id": "measures",
     "data_dir": "prescribing",
     "title": "Calculate common measures",
@@ -172,6 +172,7 @@
     "publisher": "Health & Social Care Information Centre",
     "publication_schedule": "end of each month",
     "publication_lag": "",
+    "notes": "Superseded by `practices`",
     "index_url": "http://systems.hscic.gov.uk/data/ods/datadownloads/onsdata",
     "fetcher": "org_codes.py --postcode",
     "importers": [
