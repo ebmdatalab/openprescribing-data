@@ -285,7 +285,7 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
 
     def update_smoketests(self):
         prescribing_date = "-".join(self.last_imported().split('_')) + '-01'
-        date_condition = ('month >= TIMESTAMP(DATE_SUB(DATE "%s", '
+        date_condition = ('month > TIMESTAMP(DATE_SUB(DATE "%s", '
                           'INTERVAL 5 YEAR))' % prescribing_date)
 
         for sql_file in glob.glob('smoketests/*sql'):

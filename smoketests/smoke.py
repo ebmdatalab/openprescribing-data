@@ -22,17 +22,12 @@ class SmokeTestBase(unittest.TestCase):
 
     DOMAIN = 'https://openprescribing.net'
 
-
     def _now_date(self):
         if 'LAST_IMPORTED' in os.environ:
             now = datetime.strptime(os.environ['LAST_IMPORTED'], "%Y_%m")
         else:
             now = datetime.now()
         return now
-
-    def _months_since_data_started(self):
-        now = self._now_date()
-        return (now.year - 2010) * 12 + (now.month - 8) + 1
 
     def _months_since_ccg_creation(self):
         now = self._now_date()
@@ -61,21 +56,21 @@ class TestSmokeTestSpendingByEveryone(SmokeTestBase):
         url += 'code=0501013B0AAAAAA'
         self._run_tests('presentation_by_all',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
     def test_chemical_by_all(self):
         url = '%s/api/1.0/spending/?format=csv&' % self.DOMAIN
         url += 'code=0407010F0'
         self._run_tests('chemical_by_all',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
     def test_bnf_section_by_all(self):
         url = '%s/api/1.0/spending/?format=csv&' % self.DOMAIN
         url += 'code=0702'
         self._run_tests('bnf_section_by_all',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
 
 class TestSmokeTestSpendingByOnePractice(SmokeTestBase):
@@ -91,7 +86,7 @@ class TestSmokeTestSpendingByOnePractice(SmokeTestBase):
         url += 'format=csv&code=0212000AA&org=A81015'  # Rosuvastatin Calcium.
         self._run_tests('chemical_by_one_practice',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
     def test_multiple_chemicals_by_one_practice(self):
         url = '%s/api/1.0/spending_by_practice/?format=csv&' % self.DOMAIN
@@ -99,14 +94,14 @@ class TestSmokeTestSpendingByOnePractice(SmokeTestBase):
         url += '&org=C85020'  # Multiple generic statins.
         self._run_tests('multiple_chemicals_by_one_practice',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
     def test_bnf_section_by_one_practice(self):
         url = '%s/api/1.0/spending_by_practice/' % self.DOMAIN
         url += '?format=csv&code=0304&org=L84077'
         self._run_tests('bnf_section_by_one_practice',
                         url,
-                        self._months_since_data_started())
+                        PRESCRIBING_DATA_MONTHS)
 
 
 class TestSmokeTestSpendingByCCG(SmokeTestBase):
@@ -177,27 +172,6 @@ class TestSmokeTestMeasures(SmokeTestBase):
         self.assertEqual(q['denominator'], bsa['denominator'])
         self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
 
-        q = self.retrieve_data_for_measure(
-            'ktt8_antidepressant_first_choice', 'A81001')
-        bsa = {
-            'numerator': 643,
-            'denominator': 1025,
-            'calc_value': '62.732'
-        }
-        self.assertEqual(q['numerator'], bsa['numerator'])
-        self.assertEqual(q['denominator'], bsa['denominator'])
-        self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
-
-        q = self.retrieve_data_for_measure('ktt8_dosulepin', 'A81001')
-        bsa = {
-            'numerator': 24,
-            'denominator': 1025,
-            'calc_value': '2.341'
-        }
-        self.assertEqual(q['numerator'], bsa['numerator'])
-        self.assertEqual(q['denominator'], bsa['denominator'])
-        self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
-
         q = self.retrieve_data_for_measure('ktt9_antibiotics', 'A81001')
         bsa = {
             'numerator': 577,
@@ -219,39 +193,6 @@ class TestSmokeTestMeasures(SmokeTestBase):
         self.assertEqual(q['denominator'], bsa['denominator'])
         self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
 
-        q = self.retrieve_data_for_measure('ktt10_uti_antibiotics', 'A81001')
-        bsa = {
-            'numerator': 579.833,
-            'denominator': 72,
-            'calc_value': '8.053'
-        }
-        self.assertEqual("%.3f" % q['numerator'], str(bsa['numerator']))
-        self.assertEqual(q['denominator'], bsa['denominator'])
-        # Note that BSA divides the value by 100, for no obvious reason.
-        self.assertEqual("%.3f" % (q['calc_value'] / 100), bsa['calc_value'])
-
-        # Note practice A81005, as A81001 does not appear in published data
-        q = self.retrieve_data_for_measure('ktt11_minocycline', 'A81006')
-        bsa = {
-            'numerator': 28,
-            'denominator': 12.235 * 3,
-            'calc_value': (28 / (12.235 * 3)) * 100
-        }
-        self.assertEqual(q['numerator'], bsa['numerator'])
-        self.assertEqual(q['denominator'], bsa['denominator'])
-        self.assertEqual("%.2f" % q['calc_value'], "%.2f" % bsa['calc_value'])
-
-        q = self.retrieve_data_for_measure(
-            'ktt12_diabetes_blood_glucose', 'A81001')
-        bsa = {
-            'numerator': 543,
-            'denominator': 626,
-            'calc_value': '86.741'
-        }
-        self.assertEqual(q['numerator'], bsa['numerator'])
-        self.assertEqual(q['denominator'], bsa['denominator'])
-        self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
-
         q = self.retrieve_data_for_measure('ktt12_diabetes_insulin', 'A81001')
         bsa = {
             'numerator': 44,
@@ -264,9 +205,9 @@ class TestSmokeTestMeasures(SmokeTestBase):
 
         q = self.retrieve_data_for_measure('ktt13_nsaids_ibuprofen', 'A81001')
         bsa = {
-            'numerator': 356,
             'denominator': 413,
-            'calc_value': '86.199'
+            'numerator': 57,
+            'calc_value': '13.801'
         }
         self.assertEqual(q['numerator'], bsa['numerator'])
         self.assertEqual(q['denominator'], bsa['denominator'])
