@@ -213,8 +213,17 @@ class TestSmokeTestMeasures(SmokeTestBase):
         self.assertEqual(q['denominator'], bsa['denominator'])
         self.assertEqual("%.3f" % q['calc_value'], bsa['calc_value'])
 
-    def test_measure_by_ccg(self):
-        pass
+    def test_total_measures(self):
+        url = self.DOMAIN + '/api/1.0/measure/?format=json'
+        result = requests.get(url).json()
+        for m in result['measures']:
+            last_date = sorted([x['date'] for x in m['data']])[-1]
+            expected = self._now_date().strftime('%Y-%m-%d')
+            msg = "Expected last date of %s for %s; got %s" % (
+                expected, m['id'], last_date)
+            self.assertEqual(
+                last_date, expected, msg)
+
 
 if __name__ == '__main__':
     unittest.main()
