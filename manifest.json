@@ -29,7 +29,7 @@
     "after_import": [],
     "depends_on": ["practice_details", "prescribing", "patient_list_weightings"]
   },
-  { 
+  {
     "id": "measures",
     "data_dir": "prescribing",
     "title": "Calculate common measures",
@@ -148,9 +148,9 @@
     "tags": ["research"]
   },
   {
-    "id": "prescribing",
-    "title": "GP Practice Prescribing",
-    "description": "General practice prescribing data is a list of all medicines, dressings and appliances that are prescribed and dispensed each month.",
+    "id": "prescribing_metadata",
+    "title": "GP Practice Prescribing metadata",
+    "description": "Metadata for joining with prescribing data",
     "publisher": "Health & Social Care Information Centre",
     "publication_schedule": "end of each month",
     "publication_lag": "80 - 100 days",
@@ -158,12 +158,25 @@
     "fetcher": "hscic_prescribing.py --most_recent_date",
     "importers": [
       "import_hscic_chemicals --chem_file T\\d+CHEM.*\\.CSV",
-      "import_practices --hscic_address T\\d+ADDR.*\\.CSV",
-      "convert_hscic_prescribing --filename T\\d+PDPI.*BNFT\\.CSV",
-      "import_hscic_prescribing --filename T\\d+PDPI.*_formatted\\.CSV"
+      "import_practices --hscic_address T\\d+ADDR.*\\.CSV"
     ],
     "tags": ["core_data"],
     "depends_on": ["practice_details", "ccg_details", "nhs_postcode_file", "adqs", "bnf_codes"]
+  },
+  {
+    "id": "prescribing",
+    "title": "GP Practice Prescribing",
+    "description": "General practice prescribing data is a list of all medicines, dressings and appliances that are prescribed and dispensed each month.",
+    "publisher": "NHSBSA",
+    "publication_schedule": "middle of each month",
+    "publication_lag": "60 days",
+    "index_url": "https://apps.nhsbsa.nhs.uk/infosystems/data/showDataSelector.do?reportId=124",
+    "importers": [
+      "convert_hscic_prescribing --filename .*Detailed_Prescribing_Information.csv",
+      "import_hscic_prescribing --filename .*Detailed_Prescribing_Information_formatted.CSV"
+    ],
+    "tags": ["core_data"],
+    "depends_on": ["prescribing_metadata"]
   },
   {
     "id": "nhs_postcode_file",
