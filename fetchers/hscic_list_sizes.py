@@ -55,9 +55,9 @@ class Command(BaseCommand):
         page = requests.get(url)
         tree = html.fromstring(page.content)
         first_link_text = tree.xpath(
-            '//li[@class="item HSCICProducts first"]//a/text()')[0]
+            '//li[contains(@class, "HSCICProducts")]//a/text()')[0]
         first_link_href = tree.xpath(
-            '//li[@class="item HSCICProducts first"]//a/@href')[0]
+            '//li[contains(@class, "HSCICProducts")]//a/@href')[0]
         most_recent_date = re.search(r" - (.*)$", first_link_text).groups()[0]
         o = urlparse.urlparse(first_link_href)
         q = urlparse.parse_qs(o.query)
@@ -66,7 +66,7 @@ class Command(BaseCommand):
             "?productid=%s" % q['productid'][0])
         tree = html.fromstring(page.content)
         first_link = tree.xpath(
-            "//a[contains(@href, 'gp-reg-patients-prac-quin-age')]/@href")[0]
+            "//a[contains(@href, 'gp-reg-pat-prac-quin-age')]/@href")[0]
         return (parse(most_recent_date),
                 "http://content.digital.nhs.uk/%s" % first_link)
 
