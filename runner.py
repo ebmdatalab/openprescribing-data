@@ -67,7 +67,7 @@ class Source(UserDict.UserDict):
 
     def imported_file_records(self, file_regex):
         """Return an array of import records for all imported data for this
-        source.
+        source, whose path matches file_regex.
         """
         with open('log.json', 'r') as f:
             log = json.load(f)
