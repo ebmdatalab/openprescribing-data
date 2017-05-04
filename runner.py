@@ -71,18 +71,19 @@ class Source(UserDict.UserDict):
         """
         with open('log.json', 'r') as f:
             log = json.load(f)
-            dates = log.get(self['id'], [])
-            if dates:
-                if any(not x['imported_file'] for x in dates):
-                    raise LogError("No filename found for %s in %s" % (
-                        self['id'], dates))
-                matches = filter(
-                    lambda x: re.findall(file_regex, x['imported_file']),
-                    dates)
-                if matches:
-                    return sorted(
-                        matches,
-                        key=lambda x: x['imported_at'])
+
+        dates = log.get(self['id'], [])
+        if dates:
+            if any(not x['imported_file'] for x in dates):
+                raise LogError("No filename found for %s in %s" % (
+                    self['id'], dates))
+            matches = filter(
+                lambda x: re.findall(file_regex, x['imported_file']),
+                dates)
+            if matches:
+                return sorted(
+                    matches,
+                    key=lambda x: x['imported_at'])
         return []
 
     def last_imported_file(self, file_regex):
