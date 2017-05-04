@@ -408,14 +408,13 @@ class FetcherRunner(ManifestReader):
         fetched automatically.
 
         """
-        month_and_day = datetime.datetime.now().\
-            strftime('%Y_%m')
+        year_and_month = datetime.datetime.now().strftime('%Y_%m')
         for source in self.sources_without_fetchers:
             if 'core_data' not in source['tags']:
                 continue
             for importer in source.get('importers', [None]):
                 expected_location = "%s/%s/%s" % (
-                    OPENP_DATA_BASEDIR, source['id'], month_and_day)
+                    OPENP_DATA_BASEDIR, source['id'], year_and_month)
                 print
                 print "You should now locate latest data for %s, if available" % source['id']
                 print "You should save it at:"
