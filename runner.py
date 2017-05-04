@@ -86,12 +86,11 @@ class Source(UserDict.UserDict):
                     key=lambda record: record['imported_at'])
         return []
 
-    def last_imported_file(self, file_regex):
-        """Return the full path to the most recently imported data for this
-        source.
+    def last_imported_file_record(self, file_regex):
+        """Return import record for most recent import for source, whose path
+        matches file_regex.
 
         Returns None if no data has been imported.
-
         """
         imported_file_records = self.imported_file_records(file_regex)
         if imported_file_records:
@@ -185,8 +184,7 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        last_imported_file = self.last_imported_file(file_regex)
-        return last_imported_file
+        return self.last_imported_file_record(file_regex)
 
     def importer_cmds_with_latest_data(self):
         """Return a list of importer commands suitable for running.
@@ -246,7 +244,7 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
         if 'LAST_IMPORTED' in os.environ:
             date = os.environ['LAST_IMPORTED']
         else:
-            last_imported = prescribing.last_imported_file(
+            last_imported = prescribing.last_imported_file_record(
                 r'_formatted\.CSV$')['imported_file']
             date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
         return date
