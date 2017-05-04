@@ -46,10 +46,6 @@ def retry_if_key_error(ex):
     return isinstance(ex, KeyError)
 
 
-class NothingToDoError(StandardError):
-    pass
-
-
 class ManifestError(StandardError):
     pass
 
@@ -180,26 +176,15 @@ class Source(UserDict.UserDict):
         except FileNotFoundError:
             return []
 
-    def most_recent_file(self, importer, raise_if_imported=True):
+    def most_recent_file(self, importer):
         """Return the most recently generated data file for the specified
         importer.
-
-        If `raise_if_imported` is True, raise a `NothingToDoError` if
-        that file has been recorded as already imported.
-
         """
         if importer:
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        unimported = self.unimported_files(importer)
-        most_recent = unimported and unimported[-1]
         last_imported_file = self.last_imported_file(file_regex)
-        if raise_if_imported and last_imported_file:
-            last_imported_date = last_imported_file['imported_file'].split("/")[-2]
-            most_recent_date = most_recent.split("/")[-2]
-            if last_imported_date >= most_recent_date:
-                raise NothingToDoError()
         return last_imported_file
 
     def importer_cmds_with_latest_data(self):
@@ -435,7 +420,7 @@ class FetcherRunner(ManifestReader):
                         print "    %s" % line
                 print "The last saved data can be found at:"
                 print "    %s" % \
-                    source.most_recent_file(importer, raise_if_imported=False)
+                    source.most_recent_file(importer)
                 raw_input("Press return when done, or to skip this step")
 
     def run_all_fetchers(self):
@@ -457,8 +442,7 @@ class ImporterRunner(ManifestReader):
         """
         for source in self.sources_ordered_by_dependency():
             for importer in source.get('importers', []):
-                most_recent = source.most_recent_file(
-                    importer, raise_if_imported=False)
+                most_recent = source.most_recent_file(importer)
                 source.set_last_imported_filename(most_recent)
 
     def run_all_importers(self, paranoid=False):
