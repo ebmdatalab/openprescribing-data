@@ -65,25 +65,25 @@ class Source(UserDict.UserDict):
         UserDict.UserDict.__init__(self)
         self.data = source
 
-    def imported_files(self, file_regex):
-        """Return an array full paths to all imported data for this source.
-
+    def imported_file_records(self, file_regex):
+        """Return an array of import records for all imported data for this
+        source.
         """
         with open('log.json', 'r') as f:
             log = json.load(f)
 
-        dates = log.get(self['id'], [])
-        if dates:
-            if any(not x['imported_file'] for x in dates):
+        import_records = log.get(self['id'], [])
+        if import_records:
+            if any(not record['imported_file'] for record in import_records):
                 raise LogError("No filename found for %s in %s" % (
-                    self['id'], dates))
-            matches = filter(
-                lambda x: re.findall(file_regex, x['imported_file']),
-                dates)
-            if matches:
+                    self['id'], import_records))
+            matched_records = filter(
+                lambda record: re.findall(file_regex, record['imported_file']),
+                import_records)
+            if matched_records:
                 return sorted(
-                    matches,
-                    key=lambda x: x['imported_at'])
+                    matched_records,
+                    key=lambda record: record['imported_at'])
         return []
 
     def last_imported_file(self, file_regex):
@@ -93,9 +93,9 @@ class Source(UserDict.UserDict):
         Returns None if no data has been imported.
 
         """
-        imported_files = self.imported_files(file_regex)
-        if imported_files:
-            return imported_files[-1]
+        imported_file_records = self.imported_file_records(file_regex)
+        if imported_file_records:
+            return imported_file_records[-1]
 
     def set_last_imported_filename(self, filename):
         """Set the path of the most recently imported data for this source
@@ -164,7 +164,7 @@ class Source(UserDict.UserDict):
             file_regex = '.*'
         imported_file_dates = [
             x['imported_file'].split("/")[-2]
-            for x in self.imported_files(file_regex)
+            for x in self.imported_file_records(file_regex)
         ]
         try:
             selected = []
