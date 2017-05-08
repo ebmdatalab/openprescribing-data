@@ -168,7 +168,7 @@ class Source(UserDict.UserDict):
                 selected.append(path)
         return selected
 
-    def most_recent_file(self, importer):
+    def most_recent_file_record(self, importer):
         """Return the most recently generated data file for the specified
         importer.
         """
@@ -408,7 +408,7 @@ class FetcherRunner(ManifestReader):
                         print "    %s" % line
                 print "The last saved data can be found at:"
                 print "    %s" % \
-                    source.most_recent_file(importer)
+                    source.most_recent_file_record(importer)
                 raw_input("Press return when done, or to skip this step")
 
     def run_all_fetchers(self):
@@ -430,7 +430,7 @@ class ImporterRunner(ManifestReader):
         """
         for source in self.sources_ordered_by_dependency():
             for importer in source.get('importers', []):
-                most_recent = source.most_recent_file(importer)
+                most_recent = source.most_recent_file_record(importer)
                 source.set_last_imported_filename(most_recent)
 
     def run_all_importers(self, paranoid=False):
