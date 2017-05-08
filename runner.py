@@ -50,10 +50,6 @@ class ManifestError(StandardError):
     pass
 
 
-class FileNotFoundError(StandardError):
-    pass
-
-
 class LogError(StandardError):
     pass
 
@@ -148,10 +144,6 @@ class Source(UserDict.UserDict):
         candidates = filter(
             lambda x: re.findall(file_regex, x),
             files)
-        if len(candidates) == 0:
-            raise FileNotFoundError(
-                "Couldn't find a file matching %s at %s/%s" %
-                (file_regex, OPENP_DATA_BASEDIR, data_location))
         return sorted(candidates)
 
     def unimported_files(self, importer):
@@ -169,15 +161,12 @@ class Source(UserDict.UserDict):
             for record in self.imported_file_records(file_regex)
         ]
 
-        try:
-            selected = []
-            for path in self.files_by_date(importer):
-                if (self.data.get("always_import", False) or
-                        path.split('/')[-2] not in imported_file_dates):
-                    selected.append(path)
-            return selected
-        except FileNotFoundError:
-            return []
+        selected = []
+        for path in self.files_by_date(importer):
+            if (self.data.get("always_import", False) or
+                    path.split('/')[-2] not in imported_file_dates):
+                selected.append(path)
+        return selected
 
     def most_recent_file(self, importer):
         """Return the most recently generated data file for the specified
@@ -334,16 +323,13 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         bucket = 'ebmdatalab'
         for source in self.sources:
             for importer in source.get('importers', []):
-                try:
-                    for path in source.files_by_date(importer):
-                        name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
-                        if self.dataset_exists(bucket, name):
-                            print "Skipping %s, already uploaded" % name
-                            continue
-                        print "Uploading %s to %s" % (path, name)
-                        self.upload(path, bucket, name)
-                except FileNotFoundError:
-                    pass
+                for path in source.files_by_date(importer):
+                    name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                    if self.dataset_exists(bucket, name):
+                        print "Skipping %s, already uploaded" % name
+                        continue
+                    print "Uploading %s to %s" % (path, name)
+                    self.upload(path, bucket, name)
 
 
     @retry(retry_on_exception=retry_if_key_error, stop_max_attempt_number=3)
