@@ -136,6 +136,8 @@ class Source(UserDict.UserDict):
         return cmd_parts[filename_idx]
 
     def files_by_date(self, importer):
+        """Return list of of paths to files for importer ordered by date,
+        oldest first."""
         if importer:
             file_regex = self.filename_arg(importer)
         else:
