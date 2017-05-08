@@ -163,17 +163,18 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
+
         imported_file_dates = [
-            x['imported_file'].split("/")[-2]
-            for x in self.imported_file_records(file_regex)
+            record['imported_file'].split("/")[-2]
+            for record in self.imported_file_records(file_regex)
         ]
+
         try:
             selected = []
-            all_files = self.files_by_date(importer)
-            for f in all_files:
+            for path in self.files_by_date(importer):
                 if (self.data.get("always_import", False) or
-                        f.split('/')[-2] not in imported_file_dates):
-                    selected.append(f)
+                        path.split('/')[-2] not in imported_file_dates):
+                    selected.append(path)
             return selected
         except FileNotFoundError:
             return []
