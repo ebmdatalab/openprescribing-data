@@ -430,7 +430,7 @@ class ImporterRunner(ManifestReader):
         """
         for source in self.sources_ordered_by_dependency():
             for importer in source.get('importers', []):
-                most_recent = source.most_recent_file_record(importer)
+                most_recent = source.most_recent_file_record(importer)['imported_file']
                 source.set_last_imported_filename(most_recent)
 
     def run_all_importers(self, paranoid=False):
