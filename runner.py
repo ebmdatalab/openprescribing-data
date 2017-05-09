@@ -50,13 +50,11 @@ class ManifestError(StandardError):
     pass
 
 
-class LogError(StandardError):
-    pass
-
-
 class Source(UserDict.UserDict):
     """Adds business logic to a row of data in `manifest.json`
     """
+    LOG_PATH = 'log.json'
+
     def __init__(self, source):
         UserDict.UserDict.__init__(self)
         self.data = source
@@ -70,9 +68,6 @@ class Source(UserDict.UserDict):
 
         import_records = log.get(self['id'], [])
         if import_records:
-            if any(not record['imported_file'] for record in import_records):
-                raise LogError("No filename found for %s in %s" % (
-                    self['id'], import_records))
             matched_records = filter(
                 lambda record: re.findall(file_regex, record['imported_file']),
                 import_records)
