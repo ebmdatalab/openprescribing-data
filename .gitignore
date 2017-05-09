@@ -8,6 +8,7 @@ analysis/
 docs/
 cache-warming/
 log.json
+!test-data/log.json
 
 # System files
 *.py[co]

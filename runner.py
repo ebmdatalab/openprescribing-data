@@ -63,19 +63,16 @@ class Source(UserDict.UserDict):
         """Return an list of import records for all imported data for this
         source, whose path matches file_regex.
         """
-        with open('log.json', 'r') as f:
+        with open(self.LOG_PATH, 'r') as f:
             log = json.load(f)
 
         import_records = log.get(self['id'], [])
-        if import_records:
-            matched_records = filter(
-                lambda record: re.findall(file_regex, record['imported_file']),
-                import_records)
-            if matched_records:
-                return sorted(
-                    matched_records,
-                    key=lambda record: record['imported_at'])
-        return []
+        matched_records = filter(
+            lambda record: re.findall(file_regex, record['imported_file']),
+            import_records)
+        return sorted(
+            matched_records,
+            key=lambda record: record['imported_at'])
 
     def last_imported_file_record(self, file_regex):
         """Return import record for most recent import for source, whose path
@@ -91,7 +88,7 @@ class Source(UserDict.UserDict):
         """Set the path of the most recently imported data for this source
         """
         now = datetime.datetime.now().replace(microsecond=0).isoformat()
-        with open('log.json', 'r+') as f:
+        with open(self.LOG_PATH, 'r+') as f:
             try:
                 log = json.load(f)
             except ValueError:
