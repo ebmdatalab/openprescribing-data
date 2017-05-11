@@ -46,15 +46,7 @@ def retry_if_key_error(ex):
     return isinstance(ex, KeyError)
 
 
-class NothingToDoError(StandardError):
-    pass
-
-
 class ManifestError(StandardError):
-    pass
-
-
-class FileNotFoundError(StandardError):
     pass
 
 
@@ -69,36 +61,36 @@ class Source(UserDict.UserDict):
         UserDict.UserDict.__init__(self)
         self.data = source
 
-    def imported_files(self, file_regex):
-        """Return an array full paths to all imported data for this source.
-
+    def imported_file_records(self, file_regex):
+        """Return an list of import records for all imported data for this
+        source, whose path matches file_regex.
         """
         with open('log.json', 'r') as f:
             log = json.load(f)
-            dates = log.get(self['id'], [])
-            if dates:
-                if any(not x['imported_file'] for x in dates):
-                    raise LogError("No filename found for %s in %s" % (
-                        self['id'], dates))
-                matches = filter(
-                    lambda x: re.findall(file_regex, x['imported_file']),
-                    dates)
-                if matches:
-                    return sorted(
-                        matches,
-                        key=lambda x: x['imported_at'])
+
+        import_records = log.get(self['id'], [])
+        if import_records:
+            if any(not record['imported_file'] for record in import_records):
+                raise LogError("No filename found for %s in %s" % (
+                    self['id'], import_records))
+            matched_records = filter(
+                lambda record: re.findall(file_regex, record['imported_file']),
+                import_records)
+            if matched_records:
+                return sorted(
+                    matched_records,
+                    key=lambda record: record['imported_at'])
         return []
 
-    def last_imported_file(self, file_regex):
-        """Return the full path to the most recently imported data for this
-        source.
+    def last_imported_file_record(self, file_regex):
+        """Return import record for most recent import for source, whose path
+        matches file_regex.
 
         Returns None if no data has been imported.
-
         """
-        imported_files = self.imported_files(file_regex)
-        if imported_files:
-            return imported_files[-1]
+        imported_file_records = self.imported_file_records(file_regex)
+        if imported_file_records:
+            return imported_file_records[-1]
 
     def set_last_imported_filename(self, filename):
         """Set the path of the most recently imported data for this source
@@ -140,6 +132,8 @@ class Source(UserDict.UserDict):
         return cmd_parts[filename_idx]
 
     def files_by_date(self, importer):
+        """Return list of of paths to files for importer ordered by date,
+        oldest first."""
         if importer:
             file_regex = self.filename_arg(importer)
         else:
@@ -150,10 +144,6 @@ class Source(UserDict.UserDict):
         candidates = filter(
             lambda x: re.findall(file_regex, x),
             files)
-        if len(candidates) == 0:
-            raise FileNotFoundError(
-                "Couldn't find a file matching %s at %s/%s" %
-                (file_regex, OPENP_DATA_BASEDIR, data_location))
         return sorted(candidates)
 
     def unimported_files(self, importer):
@@ -165,42 +155,28 @@ class Source(UserDict.UserDict):
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        imported_file_dates = [
-            x['imported_file'].split("/")[-2]
-            for x in self.imported_files(file_regex)
-        ]
-        try:
-            selected = []
-            all_files = self.files_by_date(importer)
-            for f in all_files:
-                if (self.data.get("always_import", False) or
-                        f.split('/')[-2] not in imported_file_dates):
-                    selected.append(f)
-            return selected
-        except FileNotFoundError:
-            return []
 
-    def most_recent_file(self, importer, raise_if_imported=True):
+        imported_file_dates = [
+            record['imported_file'].split("/")[-2]
+            for record in self.imported_file_records(file_regex)
+        ]
+
+        selected = []
+        for path in self.files_by_date(importer):
+            if (self.data.get("always_import", False) or
+                    path.split('/')[-2] not in imported_file_dates):
+                selected.append(path)
+        return selected
+
+    def most_recent_file_record(self, importer):
         """Return the most recently generated data file for the specified
         importer.
-
-        If `raise_if_imported` is True, raise a `NothingToDoError` if
-        that file has been recorded as already imported.
-
         """
         if importer:
             file_regex = self.filename_arg(importer)
         else:
             file_regex = '.*'
-        unimported = self.unimported_files(importer)
-        most_recent = unimported and unimported[-1]
-        last_imported_file = self.last_imported_file(file_regex)
-        if raise_if_imported and last_imported_file:
-            last_imported_date = last_imported_file['imported_file'].split("/")[-2]
-            most_recent_date = most_recent.split("/")[-2]
-            if last_imported_date >= most_recent_date:
-                raise NothingToDoError()
-        return last_imported_file
+        return self.last_imported_file_record(file_regex)
 
     def importer_cmds_with_latest_data(self):
         """Return a list of importer commands suitable for running.
@@ -260,7 +236,7 @@ class SmokeTestHandler(ManifestReader, CloudHandler):
         if 'LAST_IMPORTED' in os.environ:
             date = os.environ['LAST_IMPORTED']
         else:
-            last_imported = prescribing.last_imported_file(
+            last_imported = prescribing.last_imported_file_record(
                 r'_formatted\.CSV$')['imported_file']
             date = re.findall(r'/(\d{4}_\d{2})/', last_imported)[0]
         return date
@@ -347,16 +323,13 @@ class BigQueryUploader(ManifestReader, CloudHandler):
         bucket = 'ebmdatalab'
         for source in self.sources:
             for importer in source.get('importers', []):
-                try:
-                    for path in source.files_by_date(importer):
-                        name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
-                        if self.dataset_exists(bucket, name):
-                            print "Skipping %s, already uploaded" % name
-                            continue
-                        print "Uploading %s to %s" % (path, name)
-                        self.upload(path, bucket, name)
-                except FileNotFoundError:
-                    pass
+                for path in source.files_by_date(importer):
+                    name = 'hscic' + path.replace(OPENP_DATA_BASEDIR, '')
+                    if self.dataset_exists(bucket, name):
+                        print "Skipping %s, already uploaded" % name
+                        continue
+                    print "Uploading %s to %s" % (path, name)
+                    self.upload(path, bucket, name)
 
 
     @retry(retry_on_exception=retry_if_key_error, stop_max_attempt_number=3)
@@ -408,14 +381,13 @@ class FetcherRunner(ManifestReader):
         fetched automatically.
 
         """
-        month_and_day = datetime.datetime.now().\
-            strftime('%Y_%m')
+        year_and_month = datetime.datetime.now().strftime('%Y_%m')
         for source in self.sources_without_fetchers:
             if 'core_data' not in source['tags']:
                 continue
             for importer in source.get('importers', [None]):
                 expected_location = "%s/%s/%s" % (
-                    OPENP_DATA_BASEDIR, source['id'], month_and_day)
+                    OPENP_DATA_BASEDIR, source['id'], year_and_month)
                 print
                 print "You should now locate latest data for %s, if available" % source['id']
                 print "You should save it at:"
@@ -436,7 +408,7 @@ class FetcherRunner(ManifestReader):
                         print "    %s" % line
                 print "The last saved data can be found at:"
                 print "    %s" % \
-                    source.most_recent_file(importer, raise_if_imported=False)
+                    source.most_recent_file_record(importer)
                 raw_input("Press return when done, or to skip this step")
 
     def run_all_fetchers(self):
@@ -458,8 +430,7 @@ class ImporterRunner(ManifestReader):
         """
         for source in self.sources_ordered_by_dependency():
             for importer in source.get('importers', []):
-                most_recent = source.most_recent_file(
-                    importer, raise_if_imported=False)
+                most_recent = source.most_recent_file_record(importer)['imported_file']
                 source.set_last_imported_filename(most_recent)
 
     def run_all_importers(self, paranoid=False):
