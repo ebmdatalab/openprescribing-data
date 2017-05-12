@@ -1,11 +1,11 @@
 {
     "dummy_source": [
         {
-            "imported_file": "/home/hello/openprescribing-data/data/dummy_source/2016_01/dummy_data.csv",
+            "imported_file": "/home/hello/openprescribing-data/data/dummy_source/2017_01/dummy_data.csv",
             "imported_at": "2017-01-01T12:00:00"
         },
         {
-            "imported_file": "/home/hello/openprescribing-data/data/dummy_source/2016_11/dummy_data.csv",
+            "imported_file": "/home/hello/openprescribing-data/data/dummy_source/2017_02/dummy_data.csv",
             "imported_at": "2017-02-01T12:00:00"
         }
     ]
