@@ -1,3 +1,5 @@
+**This repository is retired and no longer used. All OpenPrescribing data management is carried out by the `pipeline` app in [the main OpenPrescribing repo](https://github.com/ebmdatalab/openprescribing/)**
+
 # Overview
 
 ## Regular updating
